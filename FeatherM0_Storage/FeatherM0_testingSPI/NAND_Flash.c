@@ -2,7 +2,7 @@
  * NAND_Flash.c
  *
  * Created: 2/23/2018 6:34:06 PM
- *  Author: kmcarrin
+ *  Author: Krystine Carrington
  */ 
 
 #include "NAND_Flash.h"
@@ -25,8 +25,21 @@ const uint8_t READ_CACHE[3] = {0x03, 0x00, 0x00};       //Command to read data f
 /* MASKS */
 const uint8_t BUSY_MASK     = 0x01;                     //Mask for checking if the flash is busy
 const uint8_t PROG_FAIL     = 0b00001000;               //Mask for checking if the memory was programmed successfully
-const uint8_t WEL_BIT       = 0x02;                     //Mask for checking if write enable is high
+const uint8_t WEL_MASK      = 0x02;                     //Mask for checking if write enable is high
 
+/*************************************************************
+ * FUNCTION: flash_InitSPI()
+ * -----------------------------------------------------------
+ * This function initializes the SPI communication that will
+ * be used to communicate with the memory device. It sets the
+ * input and output buffers as well as the SPI buffer size. 
+ * In addition, it sets the SPI mode to Mode 0 and enables
+ * the SPI device. 
+ *
+ * Parameters: none
+ *
+ * Returns: void
+ *************************************************************/
 void flash_InitSPI()
 {
 	/* Associate flash buffers with SPI device and set
@@ -41,6 +54,21 @@ void flash_InitSPI()
 	spi_m_sync_enable(&SPI_0);
 }
 
+/*************************************************************
+ * FUNCTION: flash_InitBuffers()
+ * -----------------------------------------------------------
+ * This function initializes the buffers that will be used for
+ * SPI communication. The input buffer is initialized to all
+ * 0xFF values. The output buffer, on the other hand, is 
+ * initialized to all zeros. This is because 0xFF is 
+ * recognized as a command by the NAND device and we don't 
+ * want to inadvertently send the command. 0x00 is not 
+ * recognized as a command by the NAND device.
+ *
+ * Parameters: none
+ *
+ * Returns: void
+ *************************************************************/
 void flash_InitBuffers()
 {
 	int i; 
@@ -53,21 +81,40 @@ void flash_InitBuffers()
 	}
 }
 
+/*************************************************************
+ * FUNCTION: flash_BufferSize()
+ * -----------------------------------------------------------
+ * This function is a utility function used to set the size
+ * of the SPI buffer.
+ *
+ * Parameters:
+ *      newSize :   New size of SPI buffer
+ *
+ * Returns: void
+ *************************************************************/
 void flash_SetSPI_BufferSize(int newSize)
 {
     spi_buff.size = newSize;
 }
 
-
-/**********************
-* RESET SLAVE DEVICE *
-**********************/ 
-/* Issue the RESET command: 0xFF. Device reset on startup
-* is not mandatory for this part, but is recommended. This
-* also ensures previous run settings are reset within the 
-* device. 
-* WILL ONLY RESET IF DEVICE IS NOT BUSY - nonblocking */
-// returns status register value
+/*************************************************************
+ * FUNCTION: flash_Reset()
+ * -----------------------------------------------------------
+ * This function issues the RESET command: 0xFF. The command 
+ * is placed in the output buffer and then sent over the SPI
+ * connection only if the device is not currently busy. If
+ * the device is busy when this function is called, the 
+ * current status of the device will be returned to the 
+ * calling function without any further operations being 
+ * performed. Device reset on startup is not mandatory for 
+ * this part, but is recommended. This also ensures previous 
+ * run settings are reset within the device during testing. 
+ *
+ * Parameters: none
+ *
+ * Returns: 
+ *      status  :   Current status of the device
+ *************************************************************/
 uint8_t flash_Reset()
 {
     /* Get the current status of the device. */
@@ -100,13 +147,18 @@ uint8_t flash_Reset()
     return (status);
 }
 
-/*************************
-* CHECK STATUS REGISTER *
-*************************/ 
-/* Issue the GET FEATURES command: 0x0F 
-* Send address of FEATURES register: 0xC0
-* Put command in MOSI buffer.  */
-//returns status register value
+/*************************************************************
+ * FUNCTION: flash_Status()
+ * -----------------------------------------------------------
+ * Issue the GET FEATURES command: 0x0F 
+ * Send address of FEATURES register: 0xC0
+ * Put command in MOSI buffer.  
+ *
+ * Parameters: none
+ *
+ * Returns:
+ *      status  :   Current status of the device
+ *************************************************************/
 uint8_t flash_Status()
 {
     /* Set buffer size to 3 and put command in output buffer:
@@ -133,14 +185,23 @@ uint8_t flash_Status()
     return (MISO[2]);
 }
 
-/* Issue the SET WEL BIT command to enable writing: 0x06
-* Issue GET FEATURES command and register address: 0x0FC0 */
-/* In order for the chip to recognize the SET WEL BIT command, 
-* ONLY one byte of data can be sent over the SPI connection
-* containing the command. The status is checked immediately
-* after in a different SPI transaction. */
-//returns status register value
-//NON BLOCKING - IF DEVICE IS BUSY, COMMAND WILL NOT BE SENT
+/*************************************************************
+ * FUNCTION: flash_SetWEL()
+ * -----------------------------------------------------------
+ * This function issues the Set Write Enable Latch command to
+ * the memory device. The command is placed into the output 
+ * buffer and sent to the device. The command must be sent as
+ * a single byte otherwise the memory device will not 
+ * recognize it. The command will only be issued if the device
+ * is not busy. If it is busy, the current status will be 
+ * returned to the calling function without any further 
+ * operations occurring. 
+ *
+ * Parameters: none
+ *
+ * Returns:
+ *      status  :   Current status of the device
+ *************************************************************/
 uint8_t flash_SetWEL()
 {
     uint8_t status = flash_Status();
@@ -170,8 +231,38 @@ uint8_t flash_SetWEL()
     return (status);
 }
 
-//returns status register value. col addr must be 2 bytes, page block 3 bytes
-//BLOCKING - WAITS UNTIL CACHE IS DONE PROGRAMMING TO MOVE ON. 
+/*************************************************************
+ * FUNCTION: flash_WritePage()
+ * -----------------------------------------------------------
+ * This function writes a page of data to the Flash device.
+ * First, the write enable flag (WEL bit) is set. Next, the
+ * device's cache is loaded with the given data. Once that
+ * Operation is complete, the data is written from the
+ * device's cache into its main memory array. The status of
+ * the operation is returned to the calling program after the
+ * operation concludes. If the device is currently busy when
+ * this function is called, then the status is returned and
+ * no further processing occurs.
+ *
+ *  NOTE: This function is blocking. The function will wait 
+ *        until the cache is done being programmed before 
+ *        issuing the execute command to move the data into 
+ *        the main memory array. It is important to note that
+ *        the maximum amount of time this delay may take is
+ *        200us.
+ *
+ * Parameters:
+ *      data[]              :   Data to write to flash. Max
+ *                              size of 2176 bytes
+ *      dataSize            :   Size of data to store. Max
+ *                              size of 2176 bytes
+ *      colAddress[]        :   Page offset. First 3 bits (most 
+ *                              significant) are zeros. 
+ *      pageBlockAddress[]  :   Block and Page to store data in
+ *
+ * Returns:
+ *      status              :   Current status of the device
+ *************************************************************/
 uint8_t flash_WritePage(uint8_t data[], int dataSize, uint8_t colAddress[], uint8_t pageBlockAddress[])
 {   
     uint8_t status = flash_Status();
@@ -179,26 +270,117 @@ uint8_t flash_WritePage(uint8_t data[], int dataSize, uint8_t colAddress[], uint
     /* If the device is not busy, attempt to program it. */
     if((status & BUSY_MASK) == 0)
     {
-        status = ProgramCache(data, dataSize, colAddress);
-
-        /* Wait until device is not busy. */
-        flash_WaitUntilNotBusy();
-
-        /* Make sure the program failure flag is not set before executing the write. */
-        if((status & PROG_FAIL) == 0)
+        status = flash_SetWEL();
+        
+        /* Make sure Write Enable flag was set. */
+        if((status & WEL_MASK) != 0)
         {
-            status = ExecuteProgram(pageBlockAddress);
-        }
+            status = ProgramCache(data, dataSize, colAddress);
+
+            /* Wait until device is not busy. */
+            flash_WaitUntilNotBusy();
+
+            /* Make sure the program failure flag is not set before executing the write. */
+            if((status & PROG_FAIL) == 0)
+            {
+                status = ExecuteProgram(pageBlockAddress);
+            }
+        }            
     }
 
     return (status);
 }
 
-//sit in an empty loop until flash is no longer busy
-//make sure this doesn't get optimized out? 
+/*************************************************************
+ * FUNCTION: flash_WaitUntilNotBusy()
+ * -----------------------------------------------------------
+ * This function continuously checks the status register. The
+ * function returns once the status register shows that the 
+ * device is no longer busy. 
+ *
+ *  NOTE: This function is blocking. The function will wait 
+ *        until the status register shows that the device is
+ *        no longer busy. 
+ *
+ * Parameters: none
+ *
+ * Returns: void
+ *************************************************************/
 void flash_WaitUntilNotBusy()
 {
     do { /* NOTHING */ } while ((flash_Status() & BUSY_MASK) != 0);
+}
+
+/*************************************************************
+ * FUNCTION: flash_ReadPage()
+ * -----------------------------------------------------------
+ * This function reads a page of data from the Flash device.
+ * First, a page of data is read from the main memory array of
+ * the device into the data cache. Then, the data is
+ * transfered from the cache to the input buffer of the micro.
+ * The status of the operation is returned to the calling 
+ * program after the operation concludes. If the device is 
+ * currently busy when this function is called, then the 
+ * status is returned and no further processing occurs.
+ *
+ *  NOTE: This function is blocking. The function will wait 
+ *        until the data is done being loaded into the cache
+ *        before it begins sending data along the MISO line.
+ *        It is important to note that the maximum amount of 
+ *        time this delay may take is 25us.
+ *
+ * Parameters: 
+ *      colAddress[]        :   Page offset. First 3 bits (most 
+ *                              significant) are zeros. 
+ *      blockPageAddress[]  :   Block and Page to store data in
+ *
+ * Returns:
+ *      status              :   Current status of the device
+ *************************************************************/
+uint8_t flash_ReadPage(uint8_t blockPageAddress[], uint8_t columnAddress[])
+{
+    uint8_t status = flash_Status();
+
+    /* If the device is not busy, attempt to read a page. */
+    if((status & BUSY_MASK) == 0)
+    {
+        status = PageRead(blockPageAddress);
+
+        /* Wait until device is not busy. */
+        flash_WaitUntilNotBusy();
+
+        /* Start streaming data back from slave device. */
+        status = ReadFromCache(columnAddress);
+    }
+    
+    return (status);
+}
+
+/*************************************************************
+ * FUNCTION: flash_ReadPage()
+ * -----------------------------------------------------------
+ * This function checks the busy flag in the status register. 
+ * If the device is NOT busy, then the status will become
+ * false, signifying that the device is not busy.
+ *
+ * Parameters: none
+ *
+ * Returns:
+ *      status  :  True if the device is busy, false otherwise.
+ *************************************************************/
+bool flash_IsBusy()
+{
+    /* Initialize status to busy. */
+    bool status = true;
+    
+    /* Checks the busy flag in the status register. If the device is
+     * NOT busy, then the status will become false for not busy. */
+    if((flash_Status() & BUSY_MASK) == 0)
+    {
+        status = false;
+    }
+    
+    return (status);
 }
 
 /* INTERNAL FUNCTIONS - NOT A PART OF API */
@@ -206,11 +388,11 @@ uint8_t ProgramCache(uint8_t data[], int dataSize, uint8_t colAddress[])
 {
     int i, j;
 
-    /* Set SPI buffer to send 1 byte of command data and a page of data. 
-     * Put the command in the output buffer. 
+    /* Set SPI buffer to send 1 byte of command data, 2 address bytes, 
+     * and a page of data. Put the command in the output buffer. 
      * The plus 3 for the size is to take into account the time it takes
      * to send the actual command. */
-    spi_buff.size = PAGE_SIZE + 3;
+    flash_SetSPI_BufferSize(PAGE_SIZE + 3);
     MOSI[0] = PROG_LOAD[0];
     MOSI[1] = colAddress[0];
     MOSI[2] = colAddress[1];
@@ -245,7 +427,7 @@ uint8_t ExecuteProgram(uint8_t pageBlockAddress[])
     /* Next, write the contents of the cache register into the main
      * memory array. Pull chip select high as soon as address is done
      * transmitting. */
-    spi_buff.size = 4;
+    flash_SetSPI_BufferSize(4);
     MOSI[0] = PEXEC[0];
     MOSI[1] = pageBlockAddress[0];
     MOSI[2] = pageBlockAddress[1];
@@ -278,4 +460,65 @@ void ReinitializeOutBuff()
     {
         MOSI[i] = 0x00;
     }
+}
+
+
+/********************
+* READ FROM MEMORY *
+********************/ 
+/* First, read a page from the main  memory array into the 
+* data cache. */
+//3 byte address. upper 7 bits low, next 11 bits block address, last 6 bits page address
+uint8_t PageRead(uint8_t blockPageAddress[])
+{
+    /* Set SPI buffer to send 1 byte of command data and 3 bytes of address
+     * data. Put the command in the output buffer. */
+    flash_SetSPI_BufferSize(4);
+    MOSI[0] = PAGE_READ[0];
+    MOSI[1] = blockPageAddress[0];
+    MOSI[2] = blockPageAddress[1];
+    MOSI[3] = blockPageAddress[2];
+    
+    /* Set slave select (CS) active low to communicate. */
+    gpio_set_pin_level(GPIO_PIN(CS),false);
+    
+    /* Read/write over SPI */
+    spi_m_sync_transfer(&SPI_0, &spi_buff);
+    
+    /* De-select device by pulling CS high. */
+    gpio_set_pin_level(GPIO_PIN(CS), true);
+        
+    /* Reinitialize output buffer and get status again */
+    MOSI[0] = 0;
+    MOSI[1] = 0;
+    MOSI[2] = 0;
+    MOSI[3] = 0;
+    
+    return (flash_Status());
+}    
+    
+ //col address most likely zeros. offset where to start reading
+ uint8_t ReadFromCache(uint8_t columnAddress[])
+{
+    /* Read the data from the cache register to the SPI
+     * MISO line. */
+    MOSI[0] = READ_CACHE[0];
+    MOSI[1] = columnAddress[0];
+    MOSI[2] = columnAddress[1];
+    
+    /* Set slave select (CS) active low to communicate. */
+    gpio_set_pin_level(GPIO_PIN(CS),false);
+        
+    /* Read/write over SPI */
+    spi_m_sync_transfer(&SPI_0, &spi_buff);
+        
+    /* De-select device by pulling CS high. */
+    gpio_set_pin_level(GPIO_PIN(CS), true);
+        
+    /* Reinitialize output buffer and get status again */
+    MOSI[0] = 0;
+    MOSI[1] = 0;
+    MOSI[2] = 0;
+        
+    return (flash_Status());
 }
