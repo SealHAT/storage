@@ -15,8 +15,8 @@
 #include "driver_init.h"
 
 /* DEFINES */
-#define BUFFER_SIZE (50)            //maximum input/output buffer transfer size for SPI
 #define PAGE_SIZE   (2176)          //maximum NAND Flash page size (including extra space)
+#define BUFFER_SIZE (2180)          //max SPI buffer size (page size plus room for commands)
 
 /* CONSTANT DECLARATIONS */
 extern const uint8_t RESET[1];      //Command to reset the memory device
@@ -51,6 +51,6 @@ void flash_WaitUntilNotBusy();
 /* INTERNAL FUNCTIONS - NOT A PART OF API */
 uint8_t ProgramCache(uint8_t data[], int dataSize, uint8_t colAddress[]);
 uint8_t ExecuteProgram(uint8_t pageBlockAddress[]);
-
+void ReinitializeOutBuff();
 
 #endif /* NAND_FLASH_H_ */

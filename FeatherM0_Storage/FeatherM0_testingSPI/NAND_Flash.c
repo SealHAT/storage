@@ -182,6 +182,7 @@ uint8_t flash_WritePage(uint8_t data[], int dataSize, uint8_t colAddress[], uint
         status = ProgramCache(data, dataSize, colAddress);
 
         /* Wait until device is not busy. */
+        flash_WaitUntilNotBusy();
 
         /* Make sure the program failure flag is not set before executing the write. */
         if((status & PROG_FAIL) == 0)
@@ -201,5 +202,80 @@ void flash_WaitUntilNotBusy()
 }
 
 /* INTERNAL FUNCTIONS - NOT A PART OF API */
-uint8_t ProgramCache(uint8_t data[], int dataSize, uint8_t colAddress[]);
-uint8_t ExecuteProgram(uint8_t pageBlockAddress[]);
+uint8_t ProgramCache(uint8_t data[], int dataSize, uint8_t colAddress[])
+{
+    int i, j;
+
+    /* Set SPI buffer to send 1 byte of command data and a page of data. 
+     * Put the command in the output buffer. 
+     * The plus 3 for the size is to take into account the time it takes
+     * to send the actual command. */
+    spi_buff.size = PAGE_SIZE + 3;
+    MOSI[0] = PROG_LOAD[0];
+    MOSI[1] = colAddress[0];
+    MOSI[2] = colAddress[1];
+
+    /* Fill up to an entire page of data. If less data is passed in,
+     * a full page of data will still be sent, but the remainder of the
+     * data will be all zeros. */
+    j = 3;
+    for(i = 0; (i < dataSize) && (i < PAGE_SIZE); i++)
+    {
+        MOSI[j] = data[i];
+        j++;
+    }
+
+    /* Set slave select (CS) active low to communicate. */
+    gpio_set_pin_level(GPIO_PIN(CS), false);
+    
+    /* Read/write over SPI */
+    spi_m_sync_transfer(&SPI_0, &spi_buff);
+    
+    /* Read/write over SPI */
+    gpio_set_pin_level(GPIO_PIN(CS), true);
+
+    /* De-select device by pulling CS high. */
+    ReinitializeOutBuff();
+
+    return (flash_Status());
+}
+
+uint8_t ExecuteProgram(uint8_t pageBlockAddress[])
+{
+    /* Next, write the contents of the cache register into the main
+     * memory array. Pull chip select high as soon as address is done
+     * transmitting. */
+    spi_buff.size = 4;
+    MOSI[0] = PEXEC[0];
+    MOSI[1] = pageBlockAddress[0];
+    MOSI[2] = pageBlockAddress[1];
+    MOSI[3] = pageBlockAddress[2];
+    
+    /* Set slave select (CS) active low to communicate. */
+    gpio_set_pin_level(GPIO_PIN(CS), false);
+        
+    /* Read/write over SPI */
+    spi_m_sync_transfer(&SPI_0, &spi_buff);
+        
+    /* De-select device by pulling CS high. */
+    gpio_set_pin_level(GPIO_PIN(CS), true);
+
+    /* Reinitialize output buffer. */
+    MOSI[0] = 0;
+    MOSI[1] = 0;
+    MOSI[2] = 0;
+    MOSI[3] = 0;
+
+    return (flash_Status());
+}
+
+void ReinitializeOutBuff()
+{
+    int i;
+    
+    /* Initialize input and output buffers */
+    for(i = 0; i < BUFFER_SIZE; i++)
+    {
+        MOSI[i] = 0x00;
+    }
+}

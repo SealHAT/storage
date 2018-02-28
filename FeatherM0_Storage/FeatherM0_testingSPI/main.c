@@ -4,7 +4,9 @@
 int main(void)
 {
     /* CONSTANT DECLARATIONS */ 
-    const uint8_t USER_DATA[4]  = {0xDE, 0xAD, 0xBE, 0xEF}; //Because why wouldn't this be the test data
+    const uint8_t USER_DATA[4]        = {0xDE, 0xAD, 0xBE, 0xEF};   //Because why wouldn't this be the test data
+    const uint8_t colAddress[2]       = {0x00, 0x00};               //Column address for in-page offset
+    const uint8_t pageBlockAddress[3] = {0x00, 0x00, 0x80};         //Block and page address. Left 18 bits block address, right 6 bits page address
 
     /* VARIABLE DECLARATIONS */
     volatile uint8_t status;
@@ -12,13 +14,9 @@ int main(void)
     /*******************
      * INITIALIZATIONS *
      *******************/ 
-    /* Initializes MCU, drivers and middleware */
-    atmel_start_init();    
-
-    /* Initialize SPI device and sets up buffers */
+    /* Initializes MCU, SPI device, and SPI Flash buffers. */
+    atmel_start_init();
     flash_InitSPI();
-
-    /* Initialize input and output buffers */
     flash_InitBuffers();
     
     /* Allow time for memory device initial setup (minimum power-up time)
@@ -34,9 +32,7 @@ int main(void)
      * other commands can be issued. Rounded up to 2ms. */
     delay_ms(200);
     
-    /*************************
-     * CHECK STATUS REGISTER *
-     *************************/ 
+    /* Check status register. */
     status = flash_Status();    //status should be zero if flash is not busy
 
     /********************
@@ -44,83 +40,17 @@ int main(void)
      ********************/ 
     status = flash_SetWEL();    //status should be 0x02 if WEL was set
 
-    /*************************
-     * CHECK STATUS REGISTER *
-     *************************/ 
+    /* Check status register. */
     status = flash_Status();    //status should be 0x02 if WEL was set
 
     /*******************
      * WRITE TO MEMORY *
      *******************/ 
-    /* First, load the data into the cache register. Pull chip 
-     * select high as soon as the last user data byte has been
-     * transmitted. Transmitting full page amount of data.*/
-    MOSI[0] = PROG_LOAD[0];
-    MOSI[1] = PROG_LOAD[1];
-    MOSI[2] = PROG_LOAD[2];
-    MOSI[3] = USER_DATA[0];
-    MOSI[4] = USER_DATA[1];
-    MOSI[5] = USER_DATA[2];
-    MOSI[6] = USER_DATA[3];
-    
-    spi_buff.size = BUFFER_SIZE;
-    
-    /* Set slave select (CS) active low to communicate. */
-    gpio_set_pin_level(GPIO_PIN(CS),false);
-    
-    /* Read/write over SPI */
-    spi_m_sync_transfer(&SPI_0, &spi_buff);
-    
-    /* Read/write over SPI */
-    gpio_set_pin_level(GPIO_PIN(CS),true);
+    status = flash_WritePage(USER_DATA, 4, colAddress, pageBlockAddress); 
     
      /* Next, check the status register for failures. */
     delay_ms(500);
-    MOSI[0] = GET_FEAT[0];
-    MOSI[1] = GET_FEAT[1];
-    MOSI[2] = 0;
-    MOSI[3] = 0;
-    MOSI[4] = 0;
-    MOSI[5] = 0;
-    MOSI[6] = 0;
-    
-    spi_buff.size = 50;
-
-    /* Next, write the contents of the cache register into the main
-     * memory array. Pull chip select high as soon as address is done
-     * transmitting. */
-    MOSI[0] = PEXEC[0];
-    MOSI[1] = PEXEC[1];
-    MOSI[2] = PEXEC[2];
-    MOSI[3] = PEXEC[3];
-    
-    spi_buff.size = 4;
-    
-    /* Set slave select (CS) active low to communicate. */
-    gpio_set_pin_level(GPIO_PIN(CS),false);
-        
-    /* Read/write over SPI */
-    spi_result = spi_m_sync_transfer(&SPI_0, &spi_buff);
-        
-    /* Read/write over SPI */
-    gpio_set_pin_level(GPIO_PIN(CS),true);
-    
-    /* Check status register again. */
-    MOSI[0] = GET_FEAT[0];
-    MOSI[1] = GET_FEAT[1];
-    MOSI[2] = 0;
-    MOSI[3] = 0;
-     
-    spi_buff.size = 3;
-     
-    /* Set slave select (CS) active low to communicate. */
-    gpio_set_pin_level(GPIO_PIN(CS),false);
-     
-    /* Read/write over SPI */
-    spi_result = spi_m_sync_transfer(&SPI_0, &spi_buff);
-     
-    /* Read/write over SPI */
-    gpio_set_pin_level(GPIO_PIN(CS),true);
+    status = flash_Status();
 
     /********************
      * READ FROM MEMORY *
@@ -139,29 +69,14 @@ int main(void)
     gpio_set_pin_level(GPIO_PIN(CS),false);
     
     /* Read/write over SPI */
-    spi_result = spi_m_sync_transfer(&SPI_0, &spi_buff);
+    spi_m_sync_transfer(&SPI_0, &spi_buff);
     
     /* Read/write over SPI */
     gpio_set_pin_level(GPIO_PIN(CS), true);
     
     /* Check status to make sure device is not still busy */
      delay_ms(500);
-     MOSI[0] = GET_FEAT[0];
-     MOSI[1] = GET_FEAT[1];
-     MOSI[2] = 0;
-     MOSI[3] = 0;
-     
-     /* 50 is arbitrary. Minimum size to see result would be 3 */
-     spi_buff.size = 50;
-
-     /* Set slave select (CS) active low to communicate. */
-     gpio_set_pin_level(GPIO_PIN(CS),false);
-     
-     /* Read/write over SPI */
-     spi_result = spi_m_sync_transfer(&SPI_0, &spi_buff);
-     
-     /* Read/write over SPI */
-     gpio_set_pin_level(GPIO_PIN(CS),true);
+    status = flash_Status();
 
     /* Read the data from the cache register to the SPI
      * MISO line. */
@@ -173,7 +88,7 @@ int main(void)
     gpio_set_pin_level(GPIO_PIN(CS),false);
     
     /* Read/write over SPI */
-    spi_result = spi_m_sync_transfer(&SPI_0, &spi_buff);
+    spi_m_sync_transfer(&SPI_0, &spi_buff);
     
     /* Read/write over SPI */
     gpio_set_pin_level(GPIO_PIN(CS),true);
