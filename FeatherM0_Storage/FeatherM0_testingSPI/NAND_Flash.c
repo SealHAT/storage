@@ -14,19 +14,21 @@
  */
 
 /* CONSTANT DECLARATIONS */
-const uint8_t RESET[1]      = {0xFF};                   //Command to reset the memory device
-const uint8_t GET_FEAT[2]   = {0x0F, 0xC0};             //Command to get the current contents of the status register
-const uint8_t SET_WEL[1]    = {0x06};                   //Command to set the write enable bit in in the status register
-const uint8_t PROG_LOAD[3]  = {0x02, 0x00, 0x00};       //Command to load data from micro into cache of memory device. Last 2 bytes page column address
-const uint8_t PEXEC[4]      = {0x10, 0x00, 0x00, 0x00}; //Command to program the main memory array from the memory devices cache register
-const uint8_t PAGE_READ[4]  = {0x13, 0x00, 0x00, 0x10}; //Command to read data from main array into data cache
-const uint8_t READ_CACHE[3] = {0x03, 0x00, 0x00};       //Command to read data from memory device cache to SPI buffer
-const uint8_t ERASE[1]      = {0xD8};                   //Command to erase a block of data 
+const uint8_t RESET[1]          = {0xFF};                   //Command to reset the memory device
+const uint8_t GET_FEAT[2]       = {0x0F, 0xC0};             //Command to get the current contents of the status register
+const uint8_t SET_WEL[1]        = {0x06};                   //Command to set the write enable bit in in the status register
+const uint8_t PROG_LOAD[3]      = {0x02, 0x00, 0x00};       //Command to load data from micro into cache of memory device. Last 2 bytes page column address
+const uint8_t PEXEC[4]          = {0x10, 0x00, 0x00, 0x00}; //Command to program the main memory array from the memory devices cache register
+const uint8_t PAGE_READ[4]      = {0x13, 0x00, 0x00, 0x10}; //Command to read data from main array into data cache
+const uint8_t READ_CACHE[3]     = {0x03, 0x00, 0x00};       //Command to read data from memory device cache to SPI buffer
+const uint8_t ERASE[1]          = {0xD8};                   //Command to erase a block of data 
+const uint8_t GET_BLOCK_LOCK[2] = {0x0F, 0xA0};             //Command to check the block lock status
+const uint8_t UNLOCK_BLOCKS[3]  = {0x1F, 0xA0, 0x00};       //Command to check the block lock status
 
 /* MASKS */
-const uint8_t BUSY_MASK     = 0x01;                     //Mask for checking if the flash is busy
-const uint8_t PROG_FAIL     = 0b00001000;               //Mask for checking if the memory was programmed successfully
-const uint8_t WEL_MASK      = 0x02;                     //Mask for checking if write enable is high
+const uint8_t BUSY_MASK         = 0x01;                     //Mask for checking if the flash is busy
+const uint8_t PROG_FAIL         = 0b00001000;               //Mask for checking if the memory was programmed successfully
+const uint8_t WEL_MASK          = 0x02;                     //Mask for checking if write enable is high
 
 /*************************************************************
  * FUNCTION: flash_InitSPI()
@@ -427,6 +429,60 @@ uint8_t flash_BlockErase(uint8_t blockAddress[])
     return (status);
 }
 
+uint8_t flash_BlockLockStatus()
+{
+    /* Set buffer size to 3 and put command in output buffer:
+     *      1 byte of command data
+     *      1 byte of address
+     *      1 additional byte as we wait to receive data from slave device */
+    flash_SetSPI_BufferSize(3);
+    MOSI[0] = GET_BLOCK_LOCK[0];
+    MOSI[1] = GET_BLOCK_LOCK[1];
+
+    /* Set slave select (CS) active low to communicate. */
+    gpio_set_pin_level(GPIO_PIN(CS), false);
+
+    /* Read/write over SPI */
+    spi_m_sync_transfer(&SPI_0, &spi_buff);
+
+    /* De-select device by pulling CS high. */
+    gpio_set_pin_level(GPIO_PIN(CS), true);
+
+    /* Reinitialize output buffer. */
+    MOSI[0] = 0;
+    MOSI[1] = 0;
+
+    return (MISO[2]);    
+}
+
+uint8_t flash_UnlockBlocks()
+{
+    /* Set buffer size to 3 and put command in output buffer:
+     *      1 byte of command data
+     *      1 byte of address
+     *      1 additional byte as we wait to receive data from slave device */
+    flash_SetSPI_BufferSize(3);
+    MOSI[0] = UNLOCK_BLOCKS[0];
+    MOSI[1] = UNLOCK_BLOCKS[1];
+    MOSI[2] = UNLOCK_BLOCKS[2];
+
+    /* Set slave select (CS) active low to communicate. */
+    gpio_set_pin_level(GPIO_PIN(CS), false);
+
+    /* Read/write over SPI */
+    spi_m_sync_transfer(&SPI_0, &spi_buff);
+
+    /* De-select device by pulling CS high. */
+    gpio_set_pin_level(GPIO_PIN(CS), true);
+
+    /* Reinitialize output buffer. */
+    MOSI[0] = 0;
+    MOSI[1] = 0;
+    MOSI[2] = 0;
+    
+    return (flash_BlockLockStatus());
+}
+
 /* INTERNAL FUNCTIONS - NOT A PART OF API */
 uint8_t ProgramCache(uint8_t data[], int dataSize, uint8_t colAddress[])
 {
@@ -548,6 +604,7 @@ uint8_t PageRead(uint8_t blockPageAddress[])
     
     /* Read the data from the cache register to the SPI
      * MISO line. */
+    flash_SetSPI_BufferSize(PAGE_SIZE + 3);
     MOSI[0] = READ_CACHE[0];
     MOSI[1] = columnAddress[0];
     MOSI[2] = columnAddress[1];

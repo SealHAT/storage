@@ -6,7 +6,7 @@ int main(void)
     /* CONSTANT DECLARATIONS */ 
     const uint8_t USER_DATA[4]        = {0xDE, 0xAD, 0xBE, 0xEF};   //Because why wouldn't this be the test data
     const uint8_t colAddress[2]       = {0x00, 0x00};               //Column address for in-page offset
-    const uint8_t pageBlockAddress[3] = {0x00, 0x08, 0x00};         //Block and page address. Left 18 bits block address, right 6 bits page address
+    const uint8_t pageBlockAddress[3] = {0x00, 0x10, 0x00};         //Block and page address. Left 18 bits block address, right 6 bits page address
 
     /* VARIABLE DECLARATIONS */
     volatile uint8_t status;
@@ -28,10 +28,16 @@ int main(void)
      * other commands can be issued. Rounded up to 2ms. */
     delay_ms(200);
     
+    /* Unlock all blocks (locked by default at power up). Returns status of the
+     * block lock register. */
+    status = flash_UnlockBlocks();
+    
+    status = flash_BlockLockStatus();
+    
     /* Read a page from memory. */
     status = flash_ReadPage(pageBlockAddress, colAddress, pageData);
     
-    status = flash_BlockErase(pageBlockAddress);
+    //status = flash_BlockErase(pageBlockAddress);
     
     /* Check status register. */
     status = flash_Status();    //status should be zero if flash is not busy
