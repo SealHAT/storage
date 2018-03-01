@@ -10,6 +10,7 @@ int main(void)
 
     /* VARIABLE DECLARATIONS */
     volatile uint8_t status;
+    uint8_t pageData[PAGE_SIZE];
      
     /* Initializes MCU, SPI device, and SPI Flash buffers. */
     atmel_start_init();
@@ -26,6 +27,11 @@ int main(void)
     /* Minimum 1.25ms delay after reset command before any
      * other commands can be issued. Rounded up to 2ms. */
     delay_ms(200);
+    
+    /* Read a page from memory. */
+    status = flash_ReadPage(pageBlockAddress, colAddress, pageData);
+    
+    status = flash_BlockErase(pageBlockAddress);
     
     /* Check status register. */
     status = flash_Status();    //status should be zero if flash is not busy
@@ -44,7 +50,7 @@ int main(void)
     status = flash_Status();
 
     /* Read a page from memory. */
-    status = flash_ReadPage(pageBlockAddress, colAddress);
+    status = flash_ReadPage(pageBlockAddress, colAddress, pageData);
     
     /* Toggle LED on/off forever. */
     while(1) 

@@ -26,6 +26,7 @@ extern const uint8_t PROG_LOAD[3];  //Command to load data from micro into cache
 extern const uint8_t PEXEC[4];      //Command to program the main memory array from the memory devices cache register
 extern const uint8_t PAGE_READ[4];  //Command to read data from main array into data cache
 extern const uint8_t READ_CACHE[3]; //Command to read data from memory device cache to SPI buffer
+extern const uint8_t ERASE[1];      //Command to erase a block of data
 
 /* MASKS */
 extern const uint8_t BUSY_MASK;     //Mask for checking if the flash is busy
@@ -122,7 +123,7 @@ void flash_WaitUntilNotBusy();
  * the device into the data cache. Then, the data is
  * transfered from the cache to the input buffer of the micro.
  *************************************************************/
-uint8_t flash_ReadPage(uint8_t blockPageAddress[], uint8_t columnAddress[]);
+uint8_t flash_ReadPage(uint8_t blockPageAddress[], uint8_t columnAddress[], uint8_t pageData[]);
 
 /*************************************************************
  * FUNCTION: flash_ReadPage()
@@ -133,11 +134,13 @@ uint8_t flash_ReadPage(uint8_t blockPageAddress[], uint8_t columnAddress[]);
  *************************************************************/
 bool flash_IsBusy();
 
+uint8_t flash_BlockErase(uint8_t blockAddress[]);
+
 /* INTERNAL FUNCTIONS - NOT A PART OF API */
 uint8_t ProgramCache(uint8_t data[], int dataSize, uint8_t colAddress[]);
 uint8_t ExecuteProgram(uint8_t pageBlockAddress[]);
 void ReinitializeOutBuff();
 uint8_t PageRead(uint8_t blockPageAddress[]); //3 byte address. upper 7 bits low, next 11 bits block address, last 6 bits page address
-uint8_t ReadFromCache(uint8_t columnAddress[]); //col address most likely zeros. offset where to start reading
+uint8_t ReadFromCache(uint8_t columnAddress[], uint8_t pageData[]); //col address most likely zeros. offset where to start reading
 
 #endif /* NAND_FLASH_H_ */

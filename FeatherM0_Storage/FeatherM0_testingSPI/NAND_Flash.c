@@ -21,6 +21,7 @@ const uint8_t PROG_LOAD[3]  = {0x02, 0x00, 0x00};       //Command to load data f
 const uint8_t PEXEC[4]      = {0x10, 0x00, 0x00, 0x00}; //Command to program the main memory array from the memory devices cache register
 const uint8_t PAGE_READ[4]  = {0x13, 0x00, 0x00, 0x10}; //Command to read data from main array into data cache
 const uint8_t READ_CACHE[3] = {0x03, 0x00, 0x00};       //Command to read data from memory device cache to SPI buffer
+const uint8_t ERASE[1]      = {0xD8};                   //Command to erase a block of data 
 
 /* MASKS */
 const uint8_t BUSY_MASK     = 0x01;                     //Mask for checking if the flash is busy
@@ -337,7 +338,7 @@ void flash_WaitUntilNotBusy()
  * Returns:
  *      status              :   Current status of the device
  *************************************************************/
-uint8_t flash_ReadPage(uint8_t blockPageAddress[], uint8_t columnAddress[])
+uint8_t flash_ReadPage(uint8_t blockPageAddress[], uint8_t columnAddress[], uint8_t pageData[])
 {
     uint8_t status = flash_Status();
 
@@ -350,7 +351,7 @@ uint8_t flash_ReadPage(uint8_t blockPageAddress[], uint8_t columnAddress[])
         flash_WaitUntilNotBusy();
 
         /* Start streaming data back from slave device. */
-        status = ReadFromCache(columnAddress);
+        status = ReadFromCache(columnAddress, pageData);
     }
     
     return (status);
@@ -380,6 +381,49 @@ bool flash_IsBusy()
         status = false;
     }
     
+    return (status);
+}
+
+uint8_t flash_BlockErase(uint8_t blockAddress[])
+{
+     uint8_t status = flash_Status();
+
+    /* If the device is not busy, attempt to program it. */
+    if((status & BUSY_MASK) == 0)
+    {
+        status = flash_SetWEL();
+        
+        /* Make sure Write Enable flag was set. */
+        if((status & WEL_MASK) != 0)
+        {
+           /* Set SPI buffer to send only 1 byte of command data and
+            * 3 bytes for the block address. Put the command in the 
+            * output buffer. */
+            flash_SetSPI_BufferSize(4);
+            MOSI[0] = ERASE[0];
+            MOSI[1] = blockAddress[0];
+            MOSI[2] = blockAddress[1];
+            MOSI[3] = blockAddress[2];
+
+            /* Set slave select (CS) active low to communicate. */
+            gpio_set_pin_level(GPIO_PIN(CS), false);
+    
+            /* Read/write over SPI */
+            spi_m_sync_transfer(&SPI_0, &spi_buff);
+    
+            /* De-select device by pulling CS high. */
+            gpio_set_pin_level(GPIO_PIN(CS), true);
+            
+            /* Reinitialize output buffer and get status. */
+            MOSI[0] = 0;
+            MOSI[1] = 0;
+            MOSI[2] = 0;
+            MOSI[3] = 0;
+            
+            status = flash_Status();
+        }            
+    }
+
     return (status);
 }
 
@@ -498,8 +542,10 @@ uint8_t PageRead(uint8_t blockPageAddress[])
 }    
     
  //col address most likely zeros. offset where to start reading
- uint8_t ReadFromCache(uint8_t columnAddress[])
+ uint8_t ReadFromCache(uint8_t columnAddress[], uint8_t pageData[])
 {
+    int i, j; 
+    
     /* Read the data from the cache register to the SPI
      * MISO line. */
     MOSI[0] = READ_CACHE[0];
@@ -519,6 +565,13 @@ uint8_t PageRead(uint8_t blockPageAddress[])
     MOSI[0] = 0;
     MOSI[1] = 0;
     MOSI[2] = 0;
+    
+    j = 3;
+    for(i = 0; i < PAGE_SIZE; i++)
+    {
+        pageData[i] = MISO[j];
+        j++;
+    }        
         
     return (flash_Status());
 }
