@@ -136,7 +136,16 @@ uint8_t flash_ReadPage(uint8_t blockPageAddress[], uint8_t columnAddress[], uint
  *************************************************************/
 bool flash_IsBusy();
 
+/*************************************************************
+ * FUNCTION: flash_BlockErase()
+ * -----------------------------------------------------------
+ * This function erases an entire block of memory from the 
+ * flash device. A block is the minimum size unit that is able
+ * to be erased within the device.
+ *************************************************************/
 uint8_t flash_BlockErase(uint8_t blockAddress[]);
+
+
 uint8_t flash_BlockLockStatus();
 uint8_t flash_UnlockBlocks();
 

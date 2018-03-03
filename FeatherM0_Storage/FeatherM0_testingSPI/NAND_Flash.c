@@ -386,6 +386,22 @@ bool flash_IsBusy()
     return (status);
 }
 
+/*************************************************************
+ * FUNCTION: flash_BlockErase()
+ * -----------------------------------------------------------
+ * This function erases an entire block of memory from the 
+ * flash device. A block is the minimum size unit that is able
+ * to be erased within the device. Only a single block may be
+ * erased at a time. A block consists of 64 pages or 136k 
+ * bytes. Before a block is able to be erased, the write 
+ * enable flag must be set. 
+ *
+ * Parameters: 
+ *      blockAddress[]  :   Address of block to be erased.
+ *
+ * Returns:
+ *      status          :   Current status of device.
+ *************************************************************/
 uint8_t flash_BlockErase(uint8_t blockAddress[])
 {
      uint8_t status = flash_Status();
@@ -429,6 +445,16 @@ uint8_t flash_BlockErase(uint8_t blockAddress[])
     return (status);
 }
 
+/*************************************************************
+ * FUNCTION: flash_BlockLockStatus()
+ * -----------------------------------------------------------
+ * This function  
+ *
+ * Parameters: none
+ *
+ * Returns:
+ *      status  :   Current status of block lock register.
+ *************************************************************/
 uint8_t flash_BlockLockStatus()
 {
     /* Set buffer size to 3 and put command in output buffer:
