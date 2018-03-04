@@ -11,6 +11,7 @@
  * 1) Update "SPI_0" component to be named something better, like "SPI_FLASH".
  * 2) Get updated config file for line ending stuff.
  * 3) CS pins will ultimately need unique names for each device connected to micro.
+ * 4) Validate dataSize and colAddress when writing.
  */
 
 /* CONSTANT DECLARATIONS */
@@ -278,7 +279,7 @@ uint8_t flash_WritePage(uint8_t data[], int dataSize, uint8_t colAddress[], uint
         /* Make sure Write Enable flag was set. */
         if((status & WEL_MASK) != 0)
         {
-            status = ProgramCache(data, dataSize, colAddress);
+            status = ProgramLoad(data, dataSize, colAddress);
 
             /* Wait until device is not busy. */
             flash_WaitUntilNotBusy();
@@ -448,7 +449,11 @@ uint8_t flash_BlockErase(uint8_t blockAddress[])
 /*************************************************************
  * FUNCTION: flash_BlockLockStatus()
  * -----------------------------------------------------------
- * This function  
+ * This function gets the status of the block lock register.
+ * The block lock register lists the blocks of the flash 
+ * device which are currently locked. Check the data sheet
+ * to determine which blocks are currently locked based on
+ * the return value.
  *
  * Parameters: none
  *
@@ -481,7 +486,21 @@ uint8_t flash_BlockLockStatus()
     return (MISO[2]);    
 }
 
-uint8_t flash_UnlockBlocks()
+/*************************************************************
+ * FUNCTION: flash_UnlockAllBlocks()
+ * -----------------------------------------------------------
+ * This function unlocks all blocks within the flash device
+ * for reading and writing. 
+ *
+ *  NOTE: Take special care when using this function not to 
+ *        overwrite critical device data or bad block marks.
+ *
+ * Parameters: none
+ *
+ * Returns:
+ *      status  :   Current status of block lock register.
+ *************************************************************/
+uint8_t flash_UnlockAllBlocks()
 {
     /* Set buffer size to 3 and put command in output buffer:
      *      1 byte of command data
@@ -510,9 +529,31 @@ uint8_t flash_UnlockBlocks()
 }
 
 /* INTERNAL FUNCTIONS - NOT A PART OF API */
-uint8_t ProgramCache(uint8_t data[], int dataSize, uint8_t colAddress[])
+/*************************************************************
+ * FUNCTION: ProgramLoad()
+ * -----------------------------------------------------------
+ * This function loads data from the host device into the 
+ * memory device's data cache. Only a maximum of PAGE_SIZE
+ * bytes will be sent to be loaded into the cache. If the user
+ * data array is less than PAGE_SIZE, then the last 
+ * (PAGE_SIZE - dataSize) bytes will be all zeros. The write
+ * enable flag must be set before this command is called.
+ *
+ *  TODO: validate dataSize and colAddress.
+ *
+ * Parameters:
+ *      data[]      :   User data to store.
+ *      dataSize    :   Size of data to store <= PAGE_SIZE.
+ *      colAddress  :   Where on the page to store the data.
+ *                      Ranges [0, (PAGE_SIZE - 1)].
+ *
+ * Returns:
+ *      status      :   Current value of the status register.
+ *************************************************************/
+uint8_t ProgramLoad(uint8_t data[], int dataSize, uint8_t colAddress[])
 {
-    int i, j;
+    int i;  //Used for indexing the data array
+    int j;  //Used for indexing the SPI buffer
 
     /* Set SPI buffer to send 1 byte of command data, 2 address bytes, 
      * and a page of data. Put the command in the output buffer. 
@@ -548,16 +589,32 @@ uint8_t ProgramCache(uint8_t data[], int dataSize, uint8_t colAddress[])
     return (flash_Status());
 }
 
-uint8_t ExecuteProgram(uint8_t pageBlockAddress[])
+/*************************************************************
+ * FUNCTION: ExecuteProgram()
+ * -----------------------------------------------------------
+ * This function takes data from the memory device's data
+ * cache and moves them into the main memory array. This 
+ * operation can cause the device to be busy for a maximum of
+ * 200us. 
+ *
+ *  TODO: validate block address.
+ *
+ * Parameters:
+ *      blockAddress    :   Block address in main memory array.
+ *
+ * Returns:
+ *      status          :   Value of the status register.
+ *************************************************************/
+uint8_t ExecuteProgram(uint8_t blockAddress[])
 {
-    /* Next, write the contents of the cache register into the main
+    /* Write the contents of the cache register into the main
      * memory array. Pull chip select high as soon as address is done
      * transmitting. */
     flash_SetSPI_BufferSize(4);
     MOSI[0] = PEXEC[0];
-    MOSI[1] = pageBlockAddress[0];
-    MOSI[2] = pageBlockAddress[1];
-    MOSI[3] = pageBlockAddress[2];
+    MOSI[1] = blockAddress[0];
+    MOSI[2] = blockAddress[1];
+    MOSI[3] = blockAddress[2];
     
     /* Set slave select (CS) active low to communicate. */
     gpio_set_pin_level(GPIO_PIN(CS), false);
@@ -577,6 +634,16 @@ uint8_t ExecuteProgram(uint8_t pageBlockAddress[])
     return (flash_Status());
 }
 
+/*************************************************************
+ * FUNCTION: ReinitializeOutBuff()
+ * -----------------------------------------------------------
+ * This function reinitializes the output buffer used in the
+ * SPI transactions.
+ *
+ * Parameters: none
+ *
+ * Returns: void
+ *************************************************************/
 void ReinitializeOutBuff()
 {
     int i;
@@ -588,13 +655,21 @@ void ReinitializeOutBuff()
     }
 }
 
-
-/********************
-* READ FROM MEMORY *
-********************/ 
-/* First, read a page from the main  memory array into the 
-* data cache. */
-//3 byte address. upper 7 bits low, next 11 bits block address, last 6 bits page address
+/*************************************************************
+ * FUNCTION: PageRead()
+ * -----------------------------------------------------------
+ * This function reads a page of data from the memory device's
+ * main memory array and puts it into the data cache. The
+ * upper 7 bits of the address parameter are low. The next 11 
+ * bits are the block address, and the last 6 bits are the 
+ * page address.
+ *
+ * Parameters:
+ *      blockPageAddress[]  :   Three byte block/page address.
+ *
+ * Returns:
+ *      status              :   Value of the status register.
+ *************************************************************/
 uint8_t PageRead(uint8_t blockPageAddress[])
 {
     /* Set SPI buffer to send 1 byte of command data and 3 bytes of address
@@ -622,11 +697,25 @@ uint8_t PageRead(uint8_t blockPageAddress[])
     
     return (flash_Status());
 }    
-    
- //col address most likely zeros. offset where to start reading
+
+/**************************************************************
+ * FUNCTION: ReadFromCache()
+ * ------------------------------------------------------------
+ * This function reads a page of data from the memory device's
+ * data cache and sends it to the host device's input buffer
+ * via an SPI transaction. 
+ *
+ * Parameters:
+ *      columnAddress[] :   Where on the page to start reading.
+ *      pageData[]      :   Data array to store returned data.
+ *
+ * Returns:
+ *      status              :   Value of the status register.
+ *************************************************************/
  uint8_t ReadFromCache(uint8_t columnAddress[], uint8_t pageData[])
 {
-    int i, j; 
+    int i;  //Used to index the return data array.
+    int j;  //Used to index the SPI input buffer
     
     /* Read the data from the cache register to the SPI
      * MISO line. */

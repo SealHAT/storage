@@ -30,7 +30,7 @@ int main(void)
     
     /* Unlock all blocks (locked by default at power up). Returns status of the
      * block lock register. */
-    status = flash_UnlockBlocks();
+    status = flash_UnlockAllBlocks();
     
     status = flash_BlockLockStatus();
     

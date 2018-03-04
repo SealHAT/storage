@@ -145,15 +145,63 @@ bool flash_IsBusy();
  *************************************************************/
 uint8_t flash_BlockErase(uint8_t blockAddress[]);
 
-
+/*************************************************************
+ * FUNCTION: flash_BlockLockStatus()
+ * -----------------------------------------------------------
+ * This function gets the status of the block lock register.
+ * The block lock register lists the blocks of the flash 
+ * device which are currently locked. 
+ *************************************************************/
 uint8_t flash_BlockLockStatus();
-uint8_t flash_UnlockBlocks();
+
+/*************************************************************
+ * FUNCTION: flash_UnlockAllBlocks()
+ * -----------------------------------------------------------
+ * This function unlocks all blocks within the flash device
+ * for reading and writing.
+ *************************************************************/
+uint8_t flash_UnlockAllBlocks();
 
 /* INTERNAL FUNCTIONS - NOT A PART OF API */
-uint8_t ProgramCache(uint8_t data[], int dataSize, uint8_t colAddress[]);
-uint8_t ExecuteProgram(uint8_t pageBlockAddress[]);
+/*************************************************************
+ * FUNCTION: ProgramLoad()
+ * -----------------------------------------------------------
+ * This function loads data from the host device into the 
+ * memory device's data cache. 
+ *************************************************************/
+uint8_t ProgramLoad(uint8_t data[], int dataSize, uint8_t colAddress[]);
+
+/*************************************************************
+ * FUNCTION: ExecuteProgram()
+ * -----------------------------------------------------------
+ * This function takes data from the memory device's data
+ * cache and moves them into the main memory array.
+ *************************************************************/
+uint8_t ExecuteProgram(uint8_t blockAddress[]);
+
+/*************************************************************
+ * FUNCTION: ReinitializeOutBuff()
+ * -----------------------------------------------------------
+ * This function reinitializes the output buffer used in the
+ * SPI transactions.
+ *************************************************************/
 void ReinitializeOutBuff();
-uint8_t PageRead(uint8_t blockPageAddress[]); //3 byte address. upper 7 bits low, next 11 bits block address, last 6 bits page address
-uint8_t ReadFromCache(uint8_t columnAddress[], uint8_t pageData[]); //col address most likely zeros. offset where to start reading
+
+/*************************************************************
+ * FUNCTION: PageRead()
+ * -----------------------------------------------------------
+ * This function reads a page of data from the memory device's
+ * main memory array and puts it into the data cache.
+ *************************************************************/
+uint8_t PageRead(uint8_t blockPageAddress[]);
+
+/**************************************************************
+ * FUNCTION: ReadFromCache()
+ * ------------------------------------------------------------
+ * This function reads a page of data from the memory device's
+ * data cache and sends it to the host device's input buffer
+ * via an SPI transaction.
+ *************************************************************/
+uint8_t ReadFromCache(uint8_t columnAddress[], uint8_t pageData[]); 
 
 #endif /* NAND_FLASH_H_ */
