@@ -15,8 +15,11 @@
 #include "driver_init.h"
 
 /* DEFINES */
-#define PAGE_SIZE   (2176)              //maximum NAND Flash page size (including extra space)
-#define BUFFER_SIZE (2180)              //max SPI buffer size (page size plus room for commands)
+#define PAGE_SIZE       (2048)          //maximum NAND Flash page size (including extra space)
+#define BUFFER_SIZE     (2180)          //max SPI buffer size (page size plus room for commands)
+#define BAD_BLK_ADDR    (0x800)         //Address of the bad block mark on the first page of each block
+#define ECC_START_ADDR  (0x840)         //Address of start of error correction flags (last 8 bytes)
+#define MAX_PAGE_SIZE   (2176)
 
 /* CONSTANT DECLARATIONS */
 extern const uint8_t RESET[1];          //Command to reset the memory device
@@ -36,8 +39,8 @@ extern const uint8_t PROG_FAIL;         //Mask for checking if the memory was pr
 extern const uint8_t WEL_MASK;          //Mask for checking if write enable is high
 
 /* SPI COMMUNICATION BUFFERS */
-uint8_t  MOSI[BUFFER_SIZE];             //master's output buffer
-uint8_t  MISO[BUFFER_SIZE];             //master's input buffer
+uint8_t  MOSI[BUFFER_SIZE];             //Master's output buffer
+uint8_t  MISO[BUFFER_SIZE];             //Master's input buffer
 struct   spi_xfer spi_buff;             //SPI transfer descriptor
 
 /* FUNCTION DECLARATIONS */
