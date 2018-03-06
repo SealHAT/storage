@@ -5,6 +5,10 @@
  *  Author: kmcarrin
  */ 
 
+/*
+ *  ALL DATA AND ADDRESSES ARE ASSUMED TO BE BIG ENDIAN WHEN THEY ARRIVE
+ *  WITHIN A FUNCTION. 
+ */
 
 #ifndef NAND_FLASH_H_
 #define NAND_FLASH_H_
@@ -13,13 +17,16 @@
 #include <hal_delay.h>
 
 #include "driver_init.h"
+#include "HelperFunctions.h"
 
 /* DEFINES */
-#define PAGE_SIZE       (2048)          //maximum NAND Flash page size (including extra space)
-#define BUFFER_SIZE     (2180)          //max SPI buffer size (page size plus room for commands)
-#define BAD_BLK_ADDR    (0x800)         //Address of the bad block mark on the first page of each block
-#define ECC_START_ADDR  (0x840)         //Address of start of error correction flags (last 8 bytes)
-#define MAX_PAGE_SIZE   (2176)
+#define PAGE_SIZE_EXTRA  (2176)         //maximum NAND Flash page size (including extra space)
+#define PAGE_SIZE_LESS   (2048)         //maximum NAND Flash page size (excluding extra space)
+#define BUFFER_SIZE      (2180)         //max SPI buffer size (page size plus room for commands)
+#define BAD_BLK_ADDR     (0x800)        //Address of the bad block mark on the first page of each block
+#define ECC_START_ADDR   (0x840)        //Address of start of error correction flags (last 8 bytes)
+#define MAX_PAGE_SIZE    (2176)         //Maximum bytes per page. Includes spare area. 
+#define NUM_BLOCKS       (2048)         //Number of blocks per pane. 2Gb device has 2 panes.
 
 /* CONSTANT DECLARATIONS */
 extern const uint8_t RESET[1];          //Command to reset the memory device
@@ -131,7 +138,7 @@ void flash_WaitUntilNotBusy();
 uint8_t flash_ReadPage(uint8_t blockPageAddress[], uint8_t columnAddress[], uint8_t pageData[]);
 
 /*************************************************************
- * FUNCTION: flash_ReadPage()
+ * FUNCTION: flash_IsBusy()
  * -----------------------------------------------------------
  * This function checks the busy flag in the status register. 
  * If the device is NOT busy, then the status will become
@@ -206,5 +213,17 @@ uint8_t PageRead(uint8_t blockPageAddress[]);
  * via an SPI transaction.
  *************************************************************/
 uint8_t ReadFromCache(uint8_t columnAddress[], uint8_t pageData[]); 
+
+//returns number of bad blocks found
+uint32_t BuildBadBlockTable();
+
+/**************************************************************
+ * FUNCTION: LitToBigEndian
+ * ------------------------------------------------------------
+ * Changes little endian unsigned integers into big endian 
+ * unsigned integers.
+ **************************************************************/
+//unsigned int LitToBigEndian(unsigned int x);
+
 
 #endif /* NAND_FLASH_H_ */

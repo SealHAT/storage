@@ -559,16 +559,16 @@ uint8_t ProgramLoad(uint8_t data[], int dataSize, uint8_t colAddress[])
      * and a page of data. Put the command in the output buffer. 
      * The plus 3 for the size is to take into account the time it takes
      * to send the actual command. */
-    flash_SetSPI_BufferSize(PAGE_SIZE + 3);
+    flash_SetSPI_BufferSize(PAGE_SIZE_LESS + 3);
     MOSI[0] = PROG_LOAD[0];
     MOSI[1] = colAddress[0];
     MOSI[2] = colAddress[1];
 
     /* Fill up to an entire page of data. If less data is passed in,
      * a full page of data will still be sent, but the remainder of the
-     * data will be all zeros. */
+     * data will be all zeros. WILL NOT OVERWRITE EXTRA SPACE. */
     j = 3;
-    for(i = 0; (i < dataSize) && (i < PAGE_SIZE); i++)
+    for(i = 0; (i < dataSize) && (i < PAGE_SIZE_LESS); i++)
     {
         MOSI[j] = data[i];
         j++;
@@ -719,7 +719,7 @@ uint8_t PageRead(uint8_t blockPageAddress[])
     
     /* Read the data from the cache register to the SPI
      * MISO line. */
-    flash_SetSPI_BufferSize(PAGE_SIZE + 3);
+    flash_SetSPI_BufferSize(PAGE_SIZE_EXTRA + 3);
     MOSI[0] = READ_CACHE[0];
     MOSI[1] = columnAddress[0];
     MOSI[2] = columnAddress[1];
@@ -738,12 +738,60 @@ uint8_t PageRead(uint8_t blockPageAddress[])
     MOSI[1] = 0;
     MOSI[2] = 0;
     
-    j = 3;
-    for(i = 0; i < PAGE_SIZE; i++)
+    j = 4;
+    for(i = 0; i < PAGE_SIZE_EXTRA; i++)
     {
         pageData[i] = MISO[j];
         j++;
     }        
         
     return (flash_Status());
+}
+
+/**************************************************************
+ * FUNCTION: BuildBadBlockTable()
+ * ------------------------------------------------------------
+ * This function . 
+ *
+ * Parameters: none
+ *
+ * Returns:
+ *      badCount : Number of bad blocks found in the device.
+ *************************************************************/
+uint32_t BuildBadBlockTable()
+{
+    /* VARIABLE DECLARATIONS */
+    int i;                          //Loop control variable
+    uint32_t address;               //The micro stores values little endian but is configured to send SPI data big endian
+    uint32_t badCount;              //Total number of bad blocks found
+    uint32_t nextBlock;             //Amount to increase address by to get to next block
+    uint8_t  page[PAGE_SIZE_EXTRA]; //Holds a page worth (PAGE_SIZE bytes) of data. 
+    uint32_t colAddress;            //Column address for in-page offset
+    uint8_t  status;
+    
+    /* INITIALIZATIONS */
+    badCount    = 0;
+    nextBlock   = 0x40;
+    address     = 0x000000;
+    colAddress  = 0x0000;
+    
+    //Iterate through all blocks in both planes
+    for(i = 0; i < NUM_BLOCKS; i++)
+    {
+        /* Read the first page of each block. Casts the integer value of the address to an
+         * "array" for the Read function. */
+        status = flash_ReadPage((uint8_t *) &address, (uint8_t *) &colAddress, page);
+        
+        /* If the first address in the spare area of the first page of a block is not 0xFF,
+         * that means it was marked as a bad block and should not be used. */
+        if(page[BAD_BLK_ADDR] != 0xFF)
+        {
+            badCount++;
+        }
+        
+        /* Go to next address and make big endian */
+        address += nextBlock;
+    }
+
+    return (badCount);
 }

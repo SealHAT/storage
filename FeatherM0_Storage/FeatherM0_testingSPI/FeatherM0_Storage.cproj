@@ -641,6 +641,12 @@
     <Compile Include="hal\utils\src\utils_syscalls.c">
       <SubType>compile</SubType>
     </Compile>
+    <Compile Include="HelperFunctions.c">
+      <SubType>compile</SubType>
+    </Compile>
+    <Compile Include="HelperFunctions.h">
+      <SubType>compile</SubType>
+    </Compile>
     <Compile Include="hpl\core\hpl_core_m0plus_base.c">
       <SubType>compile</SubType>
     </Compile>

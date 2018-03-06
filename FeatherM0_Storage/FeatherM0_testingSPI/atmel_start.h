@@ -6,6 +6,7 @@ extern "C" {
 #endif
 
 #include "driver_init.h"
+#include "HelperFunctions.h"
 
 /**
  * Initializes MCU, drivers and middleware in the project
