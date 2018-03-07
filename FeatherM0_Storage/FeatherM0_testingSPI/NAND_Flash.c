@@ -15,21 +15,21 @@
  */
 
 /* CONSTANT DECLARATIONS */
-const uint8_t RESET[1]          = {0xFF};                   //Command to reset the memory device
-const uint8_t GET_FEAT[2]       = {0x0F, 0xC0};             //Command to get the current contents of the status register
-const uint8_t SET_WEL[1]        = {0x06};                   //Command to set the write enable bit in in the status register
-const uint8_t PROG_LOAD[3]      = {0x02, 0x00, 0x00};       //Command to load data from micro into cache of memory device. Last 2 bytes page column address
-const uint8_t PEXEC[4]          = {0x10, 0x00, 0x00, 0x00}; //Command to program the main memory array from the memory devices cache register
-const uint8_t PAGE_READ[4]      = {0x13, 0x00, 0x00, 0x10}; //Command to read data from main array into data cache
-const uint8_t READ_CACHE[3]     = {0x03, 0x00, 0x00};       //Command to read data from memory device cache to SPI buffer
-const uint8_t ERASE[1]          = {0xD8};                   //Command to erase a block of data 
-const uint8_t GET_BLOCK_LOCK[2] = {0x0F, 0xA0};             //Command to check the block lock status
-const uint8_t UNLOCK_BLOCKS[3]  = {0x1F, 0xA0, 0x00};       //Command to check the block lock status
+const uint8_t RESET[1]          = {0xFF};                   /* Command to reset the memory device */
+const uint8_t GET_FEAT[2]       = {0x0F, 0xC0};             /* Command to get the current contents of the status register */
+const uint8_t SET_WEL[1]        = {0x06};                   /* Command to set the write enable bit in in the status register */
+const uint8_t PROG_LOAD[3]      = {0x02, 0x00, 0x00};       /* Command to load data from micro into cache of memory device. Last 2 bytes page column address */
+const uint8_t PEXEC[4]          = {0x10, 0x00, 0x00, 0x00}; /* Command to program the main memory array from the memory devices cache register */
+const uint8_t PAGE_READ[4]      = {0x13, 0x00, 0x00, 0x10}; /* Command to read data from main array into data cache */
+const uint8_t READ_CACHE[3]     = {0x03, 0x00, 0x00};       /* Command to read data from memory device cache to SPI buffer */
+const uint8_t ERASE[1]          = {0xD8};                   /* Command to erase a block of data  */
+const uint8_t GET_BLOCK_LOCK[2] = {0x0F, 0xA0};             /* Command to check the block lock status */
+const uint8_t UNLOCK_BLOCKS[3]  = {0x1F, 0xA0, 0x00};       /* Command to check the block lock status */
 
 /* MASKS */
-const uint8_t BUSY_MASK         = 0x01;                     //Mask for checking if the flash is busy
-const uint8_t PROG_FAIL         = 0b00001000;               //Mask for checking if the memory was programmed successfully
-const uint8_t WEL_MASK          = 0x02;                     //Mask for checking if write enable is high
+const uint8_t BUSY_MASK         = 0x01;                     /* Mask for checking if the flash is busy */
+const uint8_t PROG_FAIL         = 0b00001000;               /* Mask for checking if the memory was programmed successfully */
+const uint8_t WEL_MASK          = 0x02;                     /* Mask for checking if write enable is high */
 
 /*************************************************************
  * FUNCTION: flash_initSPI()
@@ -48,9 +48,9 @@ void flash_initSPI()
 {
 	/* Associate flash buffers with SPI device and set
      * buffer size. */
-    spi_buff.size  = BUFFER_SIZE;
-    spi_buff.rxbuf = MISO;
-    spi_buff.txbuf = MOSI;
+    spi_flash_buff.size  = BUFFER_SIZE;
+    spi_flash_buff.rxbuf = flash_MISO;
+    spi_flash_buff.txbuf = flash_MOSI;
 
     /* Setup SPI IO */
 	/* Set clock mode and enable SPI */
@@ -80,9 +80,29 @@ void flash_init_buffers()
 	/* Initialize input and output buffers */
 	for(i = 0; i < BUFFER_SIZE; i++)
 	{
-		MISO[i] = 0xFF;
-		MOSI[i] = 0x00;
+		flash_MISO[i] = 0xFF;
+		flash_MOSI[i] = 0x00;
 	}
+}
+
+/*************************************************************
+ * FUNCTION: flash_init_BBT()
+ * -----------------------------------------------------------
+ * This function initializes the bad block table that will
+ * hold addresses of known bad blocks within the device.
+ *
+ * Parameters: none
+ *
+ * Returns: void
+ *************************************************************/
+void flash_init_BBT()
+{
+    int i;
+    
+    for(i = 0; i < MAX_BAD_BLOCKS; i++)
+    {
+        badBlockTable[i] = 0;
+    }
 }
 
 /*************************************************************
@@ -98,7 +118,7 @@ void flash_init_buffers()
  *************************************************************/
 void flash_setSPI_buffer_size(int newSize)
 {
-    spi_buff.size = newSize;
+    spi_flash_buff.size = newSize;
 }
 
 /*************************************************************
@@ -130,19 +150,19 @@ uint8_t flash_reset()
         /* Set SPI buffer to send only 1 byte of command data. 
          * Put the command in the output buffer. */
         flash_setSPI_buffer_size(1);
-        MOSI[0] = RESET[0];
+        flash_MOSI[0] = RESET[0];
 
         /* Set slave select (CS) active low to communicate. */
         gpio_set_pin_level(GPIO_PIN(CS), false);
 
         /* Read/write over SPI */
-        spi_m_sync_transfer(&SPI_0, &spi_buff);
+        spi_m_sync_transfer(&SPI_0, &spi_flash_buff);
 
         /* De-select device by pulling CS high. */
         gpio_set_pin_level(GPIO_PIN(CS), true);
 
         /* Reinitialize output buffer. */
-        MOSI[0] = 0;
+        flash_MOSI[0] = 0;
 
         /* Get updated status. */
         status = flash_status();
@@ -170,23 +190,23 @@ uint8_t flash_status()
      *      1 byte of address
      *      1 additional byte as we wait to receive data from slave device */
     flash_setSPI_buffer_size(3);
-    MOSI[0] = GET_FEAT[0];
-    MOSI[1] = GET_FEAT[1];
+    flash_MOSI[0] = GET_FEAT[0];
+    flash_MOSI[1] = GET_FEAT[1];
 
     /* Set slave select (CS) active low to communicate. */
     gpio_set_pin_level(GPIO_PIN(CS), false);
 
     /* Read/write over SPI */
-    spi_m_sync_transfer(&SPI_0, &spi_buff);
+    spi_m_sync_transfer(&SPI_0, &spi_flash_buff);
 
     /* De-select device by pulling CS high. */
     gpio_set_pin_level(GPIO_PIN(CS), true);
 
     /* Reinitialize output buffer. */
-    MOSI[0] = 0;
-    MOSI[1] = 0;
+    flash_MOSI[0] = 0;
+    flash_MOSI[1] = 0;
 
-    return (MISO[2]);
+    return (flash_MISO[2]);
 }
 
 /*************************************************************
@@ -215,19 +235,19 @@ uint8_t flash_set_WEL()
         /* Set SPI buffer to send only 1 byte of command data. 
          * Put the command in the output buffer. */
         flash_setSPI_buffer_size(1);
-        MOSI[0] = SET_WEL[0];	
+        flash_MOSI[0] = SET_WEL[0];	
 	
         /* Set slave select (CS) active low to communicate. */
         gpio_set_pin_level(GPIO_PIN(CS), false);
     
         /* Read/write over SPI */
-        spi_m_sync_transfer(&SPI_0, &spi_buff);
+        spi_m_sync_transfer(&SPI_0, &spi_flash_buff);
     
         /* De-select device by pulling CS high. */
         gpio_set_pin_level(GPIO_PIN(CS), true);
 
         /* Reinitialize output buffer. */
-        MOSI[0] = SET_WEL[0];
+        flash_MOSI[0] = SET_WEL[0];
 
         status = flash_status();
     }
@@ -419,25 +439,25 @@ uint8_t flash_block_erase(uint8_t blockAddress[])
             * 3 bytes for the block address. Put the command in the 
             * output buffer. */
             flash_setSPI_buffer_size(4);
-            MOSI[0] = ERASE[0];
-            MOSI[1] = blockAddress[0];
-            MOSI[2] = blockAddress[1];
-            MOSI[3] = blockAddress[2];
+            flash_MOSI[0] = ERASE[0];
+            flash_MOSI[1] = blockAddress[0];
+            flash_MOSI[2] = blockAddress[1];
+            flash_MOSI[3] = blockAddress[2];
 
             /* Set slave select (CS) active low to communicate. */
             gpio_set_pin_level(GPIO_PIN(CS), false);
     
             /* Read/write over SPI */
-            spi_m_sync_transfer(&SPI_0, &spi_buff);
+            spi_m_sync_transfer(&SPI_0, &spi_flash_buff);
     
             /* De-select device by pulling CS high. */
             gpio_set_pin_level(GPIO_PIN(CS), true);
             
             /* Reinitialize output buffer and get status. */
-            MOSI[0] = 0;
-            MOSI[1] = 0;
-            MOSI[2] = 0;
-            MOSI[3] = 0;
+            flash_MOSI[0] = 0;
+            flash_MOSI[1] = 0;
+            flash_MOSI[2] = 0;
+            flash_MOSI[3] = 0;
             
             status = flash_status();
         }            
@@ -467,23 +487,23 @@ uint8_t flash_block_lock_status()
      *      1 byte of address
      *      1 additional byte as we wait to receive data from slave device */
     flash_setSPI_buffer_size(3);
-    MOSI[0] = GET_BLOCK_LOCK[0];
-    MOSI[1] = GET_BLOCK_LOCK[1];
+    flash_MOSI[0] = GET_BLOCK_LOCK[0];
+    flash_MOSI[1] = GET_BLOCK_LOCK[1];
 
     /* Set slave select (CS) active low to communicate. */
     gpio_set_pin_level(GPIO_PIN(CS), false);
 
     /* Read/write over SPI */
-    spi_m_sync_transfer(&SPI_0, &spi_buff);
+    spi_m_sync_transfer(&SPI_0, &spi_flash_buff);
 
     /* De-select device by pulling CS high. */
     gpio_set_pin_level(GPIO_PIN(CS), true);
 
     /* Reinitialize output buffer. */
-    MOSI[0] = 0;
-    MOSI[1] = 0;
+    flash_MOSI[0] = 0;
+    flash_MOSI[1] = 0;
 
-    return (MISO[2]);    
+    return (flash_MISO[2]);    
 }
 
 /*************************************************************
@@ -507,23 +527,23 @@ uint8_t flash_unlock_all_blocks()
      *      1 byte of address
      *      1 additional byte as we wait to receive data from slave device */
     flash_setSPI_buffer_size(3);
-    MOSI[0] = UNLOCK_BLOCKS[0];
-    MOSI[1] = UNLOCK_BLOCKS[1];
-    MOSI[2] = UNLOCK_BLOCKS[2];
+    flash_MOSI[0] = UNLOCK_BLOCKS[0];
+    flash_MOSI[1] = UNLOCK_BLOCKS[1];
+    flash_MOSI[2] = UNLOCK_BLOCKS[2];
 
     /* Set slave select (CS) active low to communicate. */
     gpio_set_pin_level(GPIO_PIN(CS), false);
 
     /* Read/write over SPI */
-    spi_m_sync_transfer(&SPI_0, &spi_buff);
+    spi_m_sync_transfer(&SPI_0, &spi_flash_buff);
 
     /* De-select device by pulling CS high. */
     gpio_set_pin_level(GPIO_PIN(CS), true);
 
     /* Reinitialize output buffer. */
-    MOSI[0] = 0;
-    MOSI[1] = 0;
-    MOSI[2] = 0;
+    flash_MOSI[0] = 0;
+    flash_MOSI[1] = 0;
+    flash_MOSI[2] = 0;
     
     return (flash_block_lock_status());
 }
@@ -552,17 +572,17 @@ uint8_t flash_unlock_all_blocks()
  *************************************************************/
 uint8_t program_load(uint8_t data[], int dataSize, uint8_t colAddress[])
 {
-    int i;  //Used for indexing the data array
-    int j;  //Used for indexing the SPI buffer
+    int i;  /* Used for indexing the data array */
+    int j;  /* Used for indexing the SPI buffer */
 
     /* Set SPI buffer to send 1 byte of command data, 2 address bytes, 
      * and a page of data. Put the command in the output buffer. 
      * The plus 3 for the size is to take into account the time it takes
      * to send the actual command. */
     flash_setSPI_buffer_size(PAGE_SIZE_LESS + 3);
-    MOSI[0] = PROG_LOAD[0];
-    MOSI[1] = colAddress[0];
-    MOSI[2] = colAddress[1];
+    flash_MOSI[0] = PROG_LOAD[0];
+    flash_MOSI[1] = colAddress[0];
+    flash_MOSI[2] = colAddress[1];
 
     /* Fill up to an entire page of data. If less data is passed in,
      * a full page of data will still be sent, but the remainder of the
@@ -570,7 +590,7 @@ uint8_t program_load(uint8_t data[], int dataSize, uint8_t colAddress[])
     j = 3;
     for(i = 0; (i < dataSize) && (i < PAGE_SIZE_LESS); i++)
     {
-        MOSI[j] = data[i];
+        flash_MOSI[j] = data[i];
         j++;
     }
 
@@ -578,7 +598,7 @@ uint8_t program_load(uint8_t data[], int dataSize, uint8_t colAddress[])
     gpio_set_pin_level(GPIO_PIN(CS), false);
     
     /* Read/write over SPI */
-    spi_m_sync_transfer(&SPI_0, &spi_buff);
+    spi_m_sync_transfer(&SPI_0, &spi_flash_buff);
     
     /* Read/write over SPI */
     gpio_set_pin_level(GPIO_PIN(CS), true);
@@ -611,25 +631,25 @@ uint8_t execute_program(uint8_t blockAddress[])
      * memory array. Pull chip select high as soon as address is done
      * transmitting. */
     flash_setSPI_buffer_size(4);
-    MOSI[0] = PEXEC[0];
-    MOSI[1] = blockAddress[0];
-    MOSI[2] = blockAddress[1];
-    MOSI[3] = blockAddress[2];
+    flash_MOSI[0] = PEXEC[0];
+    flash_MOSI[1] = blockAddress[0];
+    flash_MOSI[2] = blockAddress[1];
+    flash_MOSI[3] = blockAddress[2];
     
     /* Set slave select (CS) active low to communicate. */
     gpio_set_pin_level(GPIO_PIN(CS), false);
         
     /* Read/write over SPI */
-    spi_m_sync_transfer(&SPI_0, &spi_buff);
+    spi_m_sync_transfer(&SPI_0, &spi_flash_buff);
         
     /* De-select device by pulling CS high. */
     gpio_set_pin_level(GPIO_PIN(CS), true);
 
     /* Reinitialize output buffer. */
-    MOSI[0] = 0;
-    MOSI[1] = 0;
-    MOSI[2] = 0;
-    MOSI[3] = 0;
+    flash_MOSI[0] = 0;
+    flash_MOSI[1] = 0;
+    flash_MOSI[2] = 0;
+    flash_MOSI[3] = 0;
 
     return (flash_status());
 }
@@ -651,7 +671,7 @@ void reinitialize_out_buff()
     /* Initialize input and output buffers */
     for(i = 0; i < BUFFER_SIZE; i++)
     {
-        MOSI[i] = 0x00;
+        flash_MOSI[i] = 0x00;
     }
 }
 
@@ -675,25 +695,25 @@ uint8_t page_read(uint8_t blockPageAddress[])
     /* Set SPI buffer to send 1 byte of command data and 3 bytes of address
      * data. Put the command in the output buffer. */
     flash_setSPI_buffer_size(4);
-    MOSI[0] = PAGE_READ[0];
-    MOSI[1] = blockPageAddress[0];
-    MOSI[2] = blockPageAddress[1];
-    MOSI[3] = blockPageAddress[2];
+    flash_MOSI[0] = PAGE_READ[0];
+    flash_MOSI[1] = blockPageAddress[0];
+    flash_MOSI[2] = blockPageAddress[1];
+    flash_MOSI[3] = blockPageAddress[2];
     
     /* Set slave select (CS) active low to communicate. */
     gpio_set_pin_level(GPIO_PIN(CS),false);
     
     /* Read/write over SPI */
-    spi_m_sync_transfer(&SPI_0, &spi_buff);
+    spi_m_sync_transfer(&SPI_0, &spi_flash_buff);
     
     /* De-select device by pulling CS high. */
     gpio_set_pin_level(GPIO_PIN(CS), true);
         
     /* Reinitialize output buffer and get status again */
-    MOSI[0] = 0;
-    MOSI[1] = 0;
-    MOSI[2] = 0;
-    MOSI[3] = 0;
+    flash_MOSI[0] = 0;
+    flash_MOSI[1] = 0;
+    flash_MOSI[2] = 0;
+    flash_MOSI[3] = 0;
     
     return (flash_status());
 }    
@@ -714,34 +734,34 @@ uint8_t page_read(uint8_t blockPageAddress[])
  *************************************************************/
  uint8_t read_from_cache(uint8_t columnAddress[], uint8_t pageData[])
 {
-    int i;  //Used to index the return data array.
-    int j;  //Used to index the SPI input buffer
+    int i;  /* Used to index the return data array. */
+    int j;  /* Used to index the SPI input buffer */
     
     /* Read the data from the cache register to the SPI
      * MISO line. */
     flash_setSPI_buffer_size(PAGE_SIZE_EXTRA + 3);
-    MOSI[0] = READ_CACHE[0];
-    MOSI[1] = columnAddress[0];
-    MOSI[2] = columnAddress[1];
+    flash_MOSI[0] = READ_CACHE[0];
+    flash_MOSI[1] = columnAddress[0];
+    flash_MOSI[2] = columnAddress[1];
     
     /* Set slave select (CS) active low to communicate. */
     gpio_set_pin_level(GPIO_PIN(CS),false);
         
     /* Read/write over SPI */
-    spi_m_sync_transfer(&SPI_0, &spi_buff);
+    spi_m_sync_transfer(&SPI_0, &spi_flash_buff);
         
     /* De-select device by pulling CS high. */
     gpio_set_pin_level(GPIO_PIN(CS), true);
         
     /* Reinitialize output buffer and get status again */
-    MOSI[0] = 0;
-    MOSI[1] = 0;
-    MOSI[2] = 0;
+    flash_MOSI[0] = 0;
+    flash_MOSI[1] = 0;
+    flash_MOSI[2] = 0;
     
     j = 4;
     for(i = 0; i < PAGE_SIZE_EXTRA; i++)
     {
-        pageData[i] = MISO[j];
+        pageData[i] = flash_MISO[j];
         j++;
     }        
         
@@ -751,23 +771,28 @@ uint8_t page_read(uint8_t blockPageAddress[])
 /**************************************************************
  * FUNCTION: build_bad_block_table()
  * ------------------------------------------------------------
- * This function . 
+ * This function creates a list of bad blocks within the 
+ * device. It just keeps track of the addresses that should 
+ * not be written to when performing write operations. These
+ * addresses will also be skipped when reading data from the
+ * device. 
  *
  * Parameters: none
  *
  * Returns:
  *      badCount : Number of bad blocks found in the device.
  *************************************************************/
-uint32_t build_bad_block_table()
+uint8_t build_bad_block_table()
 {
     /* VARIABLE DECLARATIONS */
-    int i;                          //Loop control variable
-    uint32_t address;               //The micro stores values little endian but is configured to send SPI data big endian
-    uint32_t badCount;              //Total number of bad blocks found
-    uint32_t nextBlock;             //Amount to increase address by to get to next block
-    uint8_t  page[PAGE_SIZE_EXTRA]; //Holds a page worth (PAGE_SIZE bytes) of data. 
-    uint32_t colAddress;            //Column address for in-page offset
-    uint8_t  status;
+    int i;                          /* Loop control variable */
+    uint32_t address;               /* The micro stores values little endian but is configured to send SPI data big endian */
+    uint8_t  badCount;              /* Total number of bad blocks found */
+    uint32_t nextBlock;             /* Amount to increase address by to get to next block */
+    uint8_t  page[PAGE_SIZE_EXTRA]; /* Holds a page worth (PAGE_SIZE bytes) of data. */
+    uint32_t colAddress;            /* Column address for in-page offset */
+    uint8_t  status;                /* Value of the status register */
+    uint8_t  tableIndex;            /* The current index of the bad block table */
     
     /* INITIALIZATIONS */
     badCount    = 0;
@@ -775,7 +800,7 @@ uint32_t build_bad_block_table()
     address     = 0x000000;
     colAddress  = 0x0000;
     
-    //Iterate through all blocks in both planes
+    /* Iterate through all blocks in both planes */
     for(i = 0; i < NUM_BLOCKS; i++)
     {
         /* Read the first page of each block. Casts the integer value of the address to an
@@ -786,7 +811,13 @@ uint32_t build_bad_block_table()
          * that means it was marked as a bad block and should not be used. */
         if(page[BAD_BLK_ADDR] != 0xFF)
         {
+            if(tableIndex < MAX_BAD_BLOCKS)
+            {
+                badBlockTable[tableIndex] = address;
+            }
+            
             badCount++;
+            tableIndex++;
         }
         
         /* Go to next address and make big endian */

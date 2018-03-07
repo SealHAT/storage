@@ -4,13 +4,13 @@
 int main(void)
 {
     /* CONSTANT DECLARATIONS */ 
-    const uint8_t USER_DATA[4]  = {0xDE, 0xAD, 0xBE, 0xEF};     //Because why wouldn't this be the test data
-    uint32_t colAddress         = 0x0000;                       //Column address for in-page offset
-    uint32_t pageBlockAddress   = 0x002000;                     //Block and page address. Left 18 bits block address, right 6 bits page address
+    uint8_t  USER_DATA[4]     = {0xDE, 0xAD, 0xBE, 0xEF};     //Because why wouldn't this be the test data
+    uint32_t colAddress       = 0x0000;                       //Column address for in-page offset
+    uint32_t pageBlockAddress = 0x002000;                     //Block and page address. Left 18 bits block address, right 6 bits page address
    
     /* VARIABLE DECLARATIONS */
     volatile uint8_t  status;
-    volatile uint32_t badBlockCount;
+    //volatile uint32_t badBlockCount;
     uint8_t pageData[PAGE_SIZE_EXTRA];
      
     /* Initializes MCU, SPI device, and SPI Flash buffers. */

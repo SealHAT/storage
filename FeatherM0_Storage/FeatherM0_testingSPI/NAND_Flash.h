@@ -20,35 +20,41 @@
 #include "HelperFunctions.h"
 
 /* DEFINES */
-#define PAGE_SIZE_EXTRA  (2176)         //maximum NAND Flash page size (including extra space)
-#define PAGE_SIZE_LESS   (2048)         //maximum NAND Flash page size (excluding extra space)
-#define BUFFER_SIZE      (2180)         //max SPI buffer size (page size plus room for commands)
-#define BAD_BLK_ADDR     (0x800)        //Address of the bad block mark on the first page of each block
-#define ECC_START_ADDR   (0x840)        //Address of start of error correction flags (last 8 bytes)
-#define MAX_PAGE_SIZE    (2176)         //Maximum bytes per page. Includes spare area. 
-#define NUM_BLOCKS       (2048)         //Number of blocks per pane. 2Gb device has 2 panes.
+#define PAGE_SIZE_EXTRA  (2176)         /* Maximum NAND Flash page size (*including* extra space) */
+#define PAGE_SIZE_LESS   (2048)         /* Maximum NAND Flash page size (*excluding* extra space) */
+#define MAX_NUM_BLOCKS   (2048)         /* Maximum number of blocks within the device */
+#define MAX_BAD_BLOCKS   (100)          /* Guaranteed maximum number of bad blocks for this device */
+#define BUFFER_SIZE      (2180)         /* Max SPI buffer size (page size plus room for commands) */
+#define BAD_BLK_ADDR     (0x800)        /* Address of the bad block mark on the first page of each block */
+#define ECC_START_ADDR   (0x840)        /* Address of start of error correction flags (last 8 bytes) */
+#define MAX_PAGE_SIZE    (2176)         /* Maximum bytes per page. Includes spare area.  */
+#define NUM_BLOCKS       (2048)         /* Number of blocks per pane. 2Gb device has 2 panes. */
 
 /* CONSTANT DECLARATIONS */
-extern const uint8_t RESET[1];          //Command to reset the memory device
-extern const uint8_t GET_FEAT[2];       //Command to get the current contents of the status register
-extern const uint8_t SET_WEL[1];        //Command to set the write enable bit in in the status register
-extern const uint8_t PROG_LOAD[3];      //Command to load data from micro into cache of memory device. Last 2 bytes page column address
-extern const uint8_t PEXEC[4];          //Command to program the main memory array from the memory devices cache register
-extern const uint8_t PAGE_READ[4];      //Command to read data from main array into data cache
-extern const uint8_t READ_CACHE[3];     //Command to read data from memory device cache to SPI buffer
-extern const uint8_t ERASE[1];          //Command to erase a block of data
-extern const uint8_t GET_BLOCK_LOCK[2]; //Command to check the block lock status
-extern const uint8_t UNLOCK_BLOCKS[3];  //Command to check the block lock status
+extern const uint8_t RESET[1];          /* Command to reset the memory device */
+extern const uint8_t GET_FEAT[2];       /* Command to get the current contents of the status register */
+extern const uint8_t SET_WEL[1];        /* Command to set the write enable bit in in the status register */
+extern const uint8_t PROG_LOAD[3];      /* Command to load data from micro into cache of memory device. Last 2 bytes page column address */
+extern const uint8_t PEXEC[4];          /* Command to program the main memory array from the memory devices cache register */
+extern const uint8_t PAGE_READ[4];      /* Command to read data from main array into data cache */
+extern const uint8_t READ_CACHE[3];     /* Command to read data from memory device cache to SPI buffer */
+extern const uint8_t ERASE[1];          /* Command to erase a block of data */
+extern const uint8_t GET_BLOCK_LOCK[2]; /* Command to check the block lock status */
+extern const uint8_t UNLOCK_BLOCKS[3];  /* Command to check the block lock status */
 
 /* MASKS */
-extern const uint8_t BUSY_MASK;         //Mask for checking if the flash is busy
-extern const uint8_t PROG_FAIL;         //Mask for checking if the memory was programmed successfully
-extern const uint8_t WEL_MASK;          //Mask for checking if write enable is high
+extern const uint8_t BUSY_MASK;         /* Mask for checking if the flash is busy */
+extern const uint8_t PROG_FAIL;         /* Mask for checking if the memory was programmed successfully */
+extern const uint8_t WEL_MASK;          /* Mask for checking if write enable is high */
 
 /* SPI COMMUNICATION BUFFERS */
-uint8_t  MOSI[BUFFER_SIZE];             //Master's output buffer
-uint8_t  MISO[BUFFER_SIZE];             //Master's input buffer
-struct   spi_xfer spi_buff;             //SPI transfer descriptor
+uint8_t  flash_MOSI[BUFFER_SIZE];       /* Master's output buffer */
+uint8_t  flash_MISO[BUFFER_SIZE];       /* Master's input buffer */
+struct   spi_xfer spi_flash_buff;       /* SPI transfer descriptor */
+
+/* BAD BLOCK TABLE - the device is guaranteed to have a maximum of 2% of its blocks go bad 
+ * within its lifetime. For this device, that means a maximum total of 41 blocks. */
+uint32_t badBlockTable[MAX_BAD_BLOCKS];
 
 /* FUNCTION DECLARATIONS */
 /*************************************************************
@@ -71,6 +77,14 @@ void flash_initSPI();
  * initialized to all zeros. 
  *************************************************************/
 void flash_init_buffers();
+
+/*************************************************************
+ * FUNCTION: flash_init_BBT()
+ * -----------------------------------------------------------
+ * This function initializes the bad block table that will
+ * hold addresses of known bad blocks within the device.
+ *************************************************************/
+void flash_init_BBT();
 
 /*************************************************************
  * FUNCTION: flash_setSPI_buffer_size()
@@ -214,7 +228,12 @@ uint8_t page_read(uint8_t blockPageAddress[]);
  *************************************************************/
 uint8_t read_from_cache(uint8_t columnAddress[], uint8_t pageData[]); 
 
-//returns number of bad blocks found
-uint32_t build_bad_block_table();
+/**************************************************************
+ * FUNCTION: build_bad_block_table()
+ * ------------------------------------------------------------
+ * This function creates a list of bad blocks within the 
+ * device.
+ *************************************************************/
+uint8_t build_bad_block_table();
 
 #endif /* NAND_FLASH_H_ */
