@@ -15,15 +15,15 @@ int main(void)
      
     /* Initializes MCU, SPI device, and SPI Flash buffers. */
     atmel_start_init();
-    flash_InitSPI();
-    flash_InitBuffers();
+    flash_initSPI();
+    flash_init_buffers();
     
     /* Allow time for memory device initial setup (minimum power-up time)
      * before sending reset signal. Minimum time is 250us. */
     delay_ms(1);
     
     /* Reset slave device (memory chip). */ 
-    status = flash_Reset();     //status should be 0x01 if busy and 0x00 when done
+    status = flash_reset();     //status should be 0x01 if busy and 0x00 when done
     
     /* Minimum 1.25ms delay after reset command before any
      * other commands can be issued. Rounded up to 2ms. */
@@ -36,34 +36,34 @@ int main(void)
     /* Unlock all blocks (locked by default at power up). Returns status of the
      * block lock register. If the blocks are already unlocked, the unlock 
      * command will not be sent. */
-    status = flash_BlockLockStatus();
+    status = flash_block_lock_status();
     
     if(status > 0)
     {
-        status = flash_UnlockAllBlocks();
+        status = flash_unlock_all_blocks();
     }        
 
     /* Read a page from memory. */
-    status = flash_ReadPage((uint8_t *) &pageBlockAddress, (uint8_t *) &colAddress, pageData);
+    status = flash_read_page((uint8_t *) &pageBlockAddress, (uint8_t *) &colAddress, pageData);
     
     /* Erase a block. (Don't do this yet, wait until bad block table code is established) */
     //status = flash_BlockErase(pageBlockAddress);
     
     /* Check status register. */
-    status = flash_Status();    //status should be zero if flash is not busy
+    status = flash_status();    //status should be zero if flash is not busy
 
     /* Set Write Enable bit. */ 
-    status = flash_SetWEL();    //status should be 0x02 if WEL was set
+    status = flash_set_WEL();    //status should be 0x02 if WEL was set
 
     /* Write a page to memory. */ 
-    status = flash_WritePage(USER_DATA, 4, (uint8_t *) &colAddress, (uint8_t *) &pageBlockAddress); 
+    status = flash_write_page(USER_DATA, 4, (uint8_t *) &colAddress, (uint8_t *) &pageBlockAddress); 
     
      /* Next, check the status register for failures. */
     delay_ms(5);
-    status = flash_Status();
+    status = flash_status();
 
     /* Read a page from memory. */
-    status = flash_ReadPage((uint8_t *) &pageBlockAddress, (uint8_t *) &colAddress, pageData);
+    status = flash_read_page((uint8_t *) &pageBlockAddress, (uint8_t *) &colAddress, pageData);
     
     /* Toggle LED on/off forever. */
     while(1) 
