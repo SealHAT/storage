@@ -10,7 +10,7 @@ int main(void)
    
     /* VARIABLE DECLARATIONS */
     volatile uint8_t  status;
-    //volatile uint32_t badBlockCount;
+    volatile uint32_t badBlockCount;
     uint8_t pageData[PAGE_SIZE_EXTRA];
      
     /* Initializes MCU, SPI device, and SPI Flash buffers. */
@@ -29,9 +29,25 @@ int main(void)
      * other commands can be issued. Rounded up to 2ms. */
     delay_ms(200);
     
+    char message[] = "Before bad block count\n";
+    delay_ms(5000);
+    usb_send_buffer((uint8_t *) message, 23);
+    
     /* Build a bad block table. (Just count bad blocks for now) 
      * Very slow with debugger. */
-    //badBlockCount = BuildBadBlockTable();
+    badBlockCount = build_bad_block_table();
+    
+    char newLine = '\n';
+    
+    usb_put(badBlockCount);
+    usb_put(newLine);
+    
+    int j;
+    for(j = 0; j < MAX_BAD_BLOCKS; j++)
+    {
+        usb_send_buffer((uint8_t *) badBlockTable[j], 4);
+        usb_put(newLine);
+    }
 
     /* Unlock all blocks (locked by default at power up). Returns status of the
      * block lock register. If the blocks are already unlocked, the unlock 

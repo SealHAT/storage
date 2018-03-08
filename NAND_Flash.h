@@ -13,16 +13,13 @@
 #ifndef NAND_FLASH_H_
 #define NAND_FLASH_H_
 
-#include <hal_spi_m_sync.h>
-#include <hal_delay.h>
-
 #include "driver_init.h"
 #include "HelperFunctions.h"
 
 /* DEFINES */
 #define PAGE_SIZE_EXTRA  (2176)         /* Maximum NAND Flash page size (*including* extra space) */
 #define PAGE_SIZE_LESS   (2048)         /* Maximum NAND Flash page size (*excluding* extra space) */
-#define MAX_NUM_BLOCKS   (2048)         /* Maximum number of blocks within the device */
+#define MAX_NUM_BLOCKS   (0x80)         /* Maximum number of blocks within the device */
 #define MAX_BAD_BLOCKS   (100)          /* Guaranteed maximum number of bad blocks for this device */
 #define BUFFER_SIZE      (2180)         /* Max SPI buffer size (page size plus room for commands) */
 #define BAD_BLK_ADDR     (0x800)        /* Address of the bad block mark on the first page of each block */
