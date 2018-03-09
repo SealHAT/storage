@@ -51,9 +51,18 @@ struct   spi_xfer spi_flash_buff;       /* SPI transfer descriptor */
 
 /* BAD BLOCK TABLE - the device is guaranteed to have a maximum of 2% of its blocks go bad 
  * within its lifetime. For this device, that means a maximum total of 41 blocks. */
-uint32_t badBlockTable[MAX_BAD_BLOCKS];
+extern uint32_t badBlockTable[MAX_BAD_BLOCKS];
 
 /* FUNCTION DECLARATIONS */
+/*************************************************************
+ * FUNCTION: flash_init()
+ * -----------------------------------------------------------
+ * This function calls all other initialization functions. The
+ * SPI, buffers, and bad block table will all be initialized 
+ * within this function.
+ *************************************************************/
+void flash_init();
+
 /*************************************************************
  * FUNCTION: flash_initSPI()
  * -----------------------------------------------------------
@@ -165,6 +174,8 @@ bool flash_is_busy();
  * to be erased within the device.
  *************************************************************/
 uint8_t flash_block_erase(uint8_t blockAddress[]);
+
+//uint8_t flash_erase_device();
 
 /*************************************************************
  * FUNCTION: flash_block_lock_status()

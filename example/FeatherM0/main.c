@@ -7,16 +7,20 @@ int main(void)
     uint8_t  USER_DATA[4]     = {0xDE, 0xAD, 0xBE, 0xEF};     //Because why wouldn't this be the test data
     uint32_t colAddress       = 0x0000;                       //Column address for in-page offset
     uint32_t pageBlockAddress = 0x002000;                     //Block and page address. Left 18 bits block address, right 6 bits page address
+    uint32_t testBlockAddress = 0x002000;
    
     /* VARIABLE DECLARATIONS */
     volatile uint8_t  status;
     volatile uint32_t badBlockCount;
     uint8_t pageData[PAGE_SIZE_EXTRA];
+    
+    int i;
+    for(i = 0; i < PAGE_SIZE_EXTRA; i++)
+        pageData[i] = 0;
      
     /* Initializes MCU, SPI device, and SPI Flash buffers. */
     atmel_start_init();
-    flash_initSPI();
-    flash_init_buffers();
+    flash_init();
     
     /* Allow time for memory device initial setup (minimum power-up time)
      * before sending reset signal. Minimum time is 250us. */
@@ -29,23 +33,32 @@ int main(void)
      * other commands can be issued. Rounded up to 2ms. */
     delay_ms(200);
     
+     /* Read a page from memory. */
+     status = flash_read_page((uint8_t *) &testBlockAddress, (uint8_t *) &colAddress, pageData);
+    
     char message[] = "Before bad block count\n";
     delay_ms(5000);
     usb_send_buffer((uint8_t *) message, 23);
     
+    int j;
+    char newLine = '\n';
+    
+    for(j = 0; j < MAX_BAD_BLOCKS; j++)
+    {
+        usb_send_buffer((uint8_t *) &badBlockTable[j], 4);
+        usb_put(newLine);
+    }
+    
     /* Build a bad block table. (Just count bad blocks for now) 
      * Very slow with debugger. */
     badBlockCount = build_bad_block_table();
-    
-    char newLine = '\n';
-    
+
     usb_put(badBlockCount);
     usb_put(newLine);
-    
-    int j;
+
     for(j = 0; j < MAX_BAD_BLOCKS; j++)
     {
-        usb_send_buffer((uint8_t *) badBlockTable[j], 4);
+        usb_send_buffer((uint8_t *) &badBlockTable[j], 4);
         usb_put(newLine);
     }
 

@@ -31,6 +31,26 @@ const uint8_t BUSY_MASK         = 0x01;                     /* Mask for checking
 const uint8_t PROG_FAIL         = 0b00001000;               /* Mask for checking if the memory was programmed successfully */
 const uint8_t WEL_MASK          = 0x02;                     /* Mask for checking if write enable is high */
 
+uint32_t badBlockTable[MAX_BAD_BLOCKS];
+
+/*************************************************************
+ * FUNCTION: flash_init()
+ * -----------------------------------------------------------
+ * This function calls all other initialization functions. The
+ * SPI, buffers, and bad block table will all be initialized 
+ * within this function. 
+ *
+ * Parameters: none
+ *
+ * Returns: void
+ *************************************************************/
+void flash_init()
+{
+    flash_initSPI();
+    flash_init_buffers();
+    flash_init_BBT();
+}
+
 /*************************************************************
  * FUNCTION: flash_initSPI()
  * -----------------------------------------------------------
@@ -739,7 +759,7 @@ uint8_t page_read(uint8_t blockPageAddress[])
     
     /* Read the data from the cache register to the SPI
      * MISO line. */
-    flash_setSPI_buffer_size(PAGE_SIZE_EXTRA + 3);
+    flash_setSPI_buffer_size(PAGE_SIZE_EXTRA + 4);
     flash_MOSI[0] = READ_CACHE[0];
     flash_MOSI[1] = columnAddress[0];
     flash_MOSI[2] = columnAddress[1];
@@ -814,7 +834,7 @@ uint8_t build_bad_block_table()
         {
             if(tableIndex < MAX_BAD_BLOCKS)
             {
-                badBlockTable[tableIndex] = address;
+                badBlockTable[tableIndex] = LitToBigEndian(address);
             }
             
             badCount++;
