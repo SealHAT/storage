@@ -190,7 +190,7 @@
           <AcmeProjectActionInfo Action="File" Source="config/hpl_dmac_config.h" IsConfig="true" Hash="SHdxLw1U2akzI1NrICicSA" />
           <AcmeProjectActionInfo Action="File" Source="config/hpl_gclk_config.h" IsConfig="true" Hash="7pznmXVbLZPZBH+wxJu7mg" />
           <AcmeProjectActionInfo Action="File" Source="config/hpl_pm_config.h" IsConfig="true" Hash="GH0DautnKY3X7yLEFG4tgA" />
-          <AcmeProjectActionInfo Action="File" Source="config/hpl_sercom_config.h" IsConfig="true" Hash="tkhqxQgq+fzNt+Jp7Wfubw" />
+          <AcmeProjectActionInfo Action="File" Source="config/hpl_sercom_config.h" IsConfig="true" Hash="O21mj+Zr8jzQL64GavxxzA" />
           <AcmeProjectActionInfo Action="File" Source="config/hpl_sysctrl_config.h" IsConfig="true" Hash="CN/3La24Uq1DP7U0k1V4KQ" />
           <AcmeProjectActionInfo Action="File" Source="config/hpl_systick_config.h" IsConfig="true" Hash="tlT3lNDKWFe82MiGWfQzcA" />
           <AcmeProjectActionInfo Action="File" Source="config/hpl_usb_config.h" IsConfig="true" Hash="OTnXMB+/o/b7gPmkxUTUeQ" />
@@ -884,6 +884,13 @@
     </Compile>
     <Compile Include="main.c">
       <SubType>compile</SubType>
+    </Compile>
+    <Compile Include="NAND_Test.c">
+      <SubType>compile</SubType>
+    </Compile>
+    <Compile Include="NAND_Test.h">
+      <SubType>compile</SubType>
+      <Link>NAND_Test.h</Link>
     </Compile>
     <Compile Include="ringbuff\ringbuffer.c">
       <SubType>compile</SubType>
