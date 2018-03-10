@@ -275,6 +275,20 @@ void system_init(void)
 {
 	init_mcu();
 
+	// GPIO on PA05
+
+	// Set pin direction to output
+	gpio_set_pin_direction(CS2, GPIO_DIRECTION_OUT);
+
+	gpio_set_pin_level(CS2,
+	                   // <y> Initial level
+	                   // <id> pad_initial_level
+	                   // <false"> Low
+	                   // <true"> High
+	                   true);
+
+	gpio_set_pin_function(CS2, GPIO_PIN_FUNCTION_OFF);
+
 	// GPIO on PA10
 
 	// Set pin direction to output
@@ -316,6 +330,20 @@ void system_init(void)
 	                   false);
 
 	gpio_set_pin_function(LED_BUILTIN, GPIO_PIN_FUNCTION_OFF);
+
+	// GPIO on PB02
+
+	// Set pin direction to output
+	gpio_set_pin_direction(WP2, GPIO_DIRECTION_OUT);
+
+	gpio_set_pin_level(WP2,
+	                   // <y> Initial level
+	                   // <id> pad_initial_level
+	                   // <false"> Low
+	                   // <true"> High
+	                   true);
+
+	gpio_set_pin_function(WP2, GPIO_PIN_FUNCTION_OFF);
 
 	analog_in_init();
 	hash_chk_init();

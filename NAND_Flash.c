@@ -36,21 +36,15 @@ uint32_t badBlockTable[MAX_BAD_BLOCKS];
 /*************************************************************
  * FUNCTION: flash_init()
  * -----------------------------------------------------------
- * This function calls all other initialization functions. The
- * SPI, buffers, and bad block table will all be initialized 
- * within this function. 
+ * This function calls the other flash initialization 
+ * functions to initialize SPI buffers, SPI device, and 
+ * initialize the bad block table. 
  *
  * Parameters: none
  *
  * Returns: void
  *************************************************************/
 void flash_init()
-{
-    flash_initSPI();
-    flash_init_buffers();
-    flash_init_BBT();
-}
-
 /*************************************************************
  * FUNCTION: flash_initSPI()
  * -----------------------------------------------------------
@@ -487,6 +481,22 @@ uint8_t flash_block_erase(uint8_t blockAddress[])
 }
 
 /*************************************************************
+ * FUNCTION: flash_erase_device()
+ * -----------------------------------------------------------
+ * This function erases the entire flash device except for the
+ * first block of data. 
+ *
+ * Parameters: none
+ *
+ * Returns:
+ *      status          :   Current status of device.
+ *************************************************************/
+uint8_t flash_erase_device()
+{
+    
+}
+
+/*************************************************************
  * FUNCTION: flash_block_lock_status()
  * -----------------------------------------------------------
  * This function gets the status of the block lock register.
@@ -541,7 +551,7 @@ uint8_t flash_block_lock_status()
  *      status  :   Current status of block lock register.
  *************************************************************/
 uint8_t flash_unlock_all_blocks()
-{
+{	
     /* Set buffer size to 3 and put command in output buffer:
      *      1 byte of command data
      *      1 byte of address
@@ -759,7 +769,7 @@ uint8_t page_read(uint8_t blockPageAddress[])
     
     /* Read the data from the cache register to the SPI
      * MISO line. */
-    flash_setSPI_buffer_size(PAGE_SIZE_EXTRA + 4);
+    flash_setSPI_buffer_size(PAGE_SIZE_EXTRA + 3);
     flash_MOSI[0] = READ_CACHE[0];
     flash_MOSI[1] = columnAddress[0];
     flash_MOSI[2] = columnAddress[1];
