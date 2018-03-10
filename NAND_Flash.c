@@ -45,6 +45,12 @@ uint32_t badBlockTable[MAX_BAD_BLOCKS];
  * Returns: void
  *************************************************************/
 void flash_init()
+{
+    flash_initSPI();
+    flash_init_buffers();
+    flash_init_BBT();
+}
+
 /*************************************************************
  * FUNCTION: flash_initSPI()
  * -----------------------------------------------------------
@@ -486,6 +492,8 @@ uint8_t flash_block_erase(uint8_t blockAddress[])
  * This function erases the entire flash device except for the
  * first block of data. 
  *
+ *  NOTE: This function is blocking!
+ *
  * Parameters: none
  *
  * Returns:
@@ -493,7 +501,30 @@ uint8_t flash_block_erase(uint8_t blockAddress[])
  *************************************************************/
 uint8_t flash_erase_device()
 {
-    
+    /* VARIABLE DECLARATIONS */
+    int i;                          /* Loop control variable */
+    uint32_t address;               /* The micro stores values little endian but is configured to send SPI data big endian */
+    uint32_t nextBlock;             /* Amount to increase address by to get to next block */
+    uint8_t  status;                /* Value of the status register */
+    uint8_t  tableIndex;            /* The current index of the bad block table */
+        
+    /* INITIALIZATIONS */
+    nextBlock   = 0x40;
+    address     = 0x000000;
+    tableIndex  = 0;
+        
+    /* Iterate through all blocks in both planes */
+    for(i = 1; i < NUM_BLOCKS; i++)
+    {
+        /* Only a single block is able to be erased at any given time. */
+        status = flash_block_erase(address);
+        
+        /* Wait until device is not busy. */
+        flash_wait_until_not_busy();
+        
+        /* Go to next block. */
+        address += nextBlock;
+    }        
 }
 
 /*************************************************************

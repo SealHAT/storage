@@ -9,9 +9,13 @@
 #ifndef NAND_TEST_H_
 #define NAND_TEST_H_
 
+#include "NAND_Flash.h"
+
 #define TEST_DATA_SIZE (20480) /* 10 pages (2048 * 10) */
 
-uint8_t TEST_DATA[] = {
+uint8_t nand_test_driver();
+
+uint8_t TEST_DATA[TEST_DATA_SIZE] = {
     190, 11, 105, 64, 170, 26, 137, 75, 66, 72, 243, 171, 101, 251, 62, 216, 212, 132, 22, 109,
     106, 30, 144, 9, 148, 58, 111, 24, 27, 188, 210, 15, 134, 251, 234, 174, 11, 138, 204, 71,
     185, 90, 5, 211, 22, 13, 120, 27, 177, 98, 140, 178, 246, 82, 184, 97, 248, 217, 37, 254,
