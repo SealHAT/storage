@@ -31,6 +31,26 @@ const uint8_t BUSY_MASK         = 0x01;                     /* Mask for checking
 const uint8_t PROG_FAIL         = 0b00001000;               /* Mask for checking if the memory was programmed successfully */
 const uint8_t WEL_MASK          = 0x02;                     /* Mask for checking if write enable is high */
 
+uint32_t badBlockTable[MAX_BAD_BLOCKS];
+
+/*************************************************************
+ * FUNCTION: flash_init()
+ * -----------------------------------------------------------
+ * This function calls the other flash initialization 
+ * functions to initialize SPI buffers, SPI device, and 
+ * initialize the bad block table. 
+ *
+ * Parameters: none
+ *
+ * Returns: void
+ *************************************************************/
+void flash_init()
+{
+    flash_initSPI();
+    flash_init_buffers();
+    flash_init_BBT();
+}
+
 /*************************************************************
  * FUNCTION: flash_initSPI()
  * -----------------------------------------------------------
@@ -467,6 +487,22 @@ uint8_t flash_block_erase(uint8_t blockAddress[])
 }
 
 /*************************************************************
+ * FUNCTION: flash_erase_device()
+ * -----------------------------------------------------------
+ * This function erases the entire flash device except for the
+ * first block of data. 
+ *
+ * Parameters: none
+ *
+ * Returns:
+ *      status          :   Current status of device.
+ *************************************************************/
+uint8_t flash_erase_device()
+{
+    
+}
+
+/*************************************************************
  * FUNCTION: flash_block_lock_status()
  * -----------------------------------------------------------
  * This function gets the status of the block lock register.
@@ -814,7 +850,7 @@ uint8_t build_bad_block_table()
         {
             if(tableIndex < MAX_BAD_BLOCKS)
             {
-                badBlockTable[tableIndex] = address;
+                badBlockTable[tableIndex] = LitToBigEndian(address);
             }
             
             badCount++;

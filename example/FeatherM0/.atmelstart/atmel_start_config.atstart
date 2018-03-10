@@ -800,6 +800,13 @@ pads:
     mode: Analog
     user_label: A0
     configuration: null
+  CS2:
+    name: PA05
+    definition: Atmel:SAMD21_Drivers:0.0.1::SAMD21G18A-MF::pad::PA05
+    mode: Digital output
+    user_label: CS2
+    configuration:
+      pad_initial_level: High
   VBATT:
     name: PA07
     definition: Atmel:SAMD21_Drivers:0.0.1::SAMD21G18A-MF::pad::PA07
@@ -871,4 +878,11 @@ pads:
     mode: Advanced
     user_label: USB_P
     configuration: null
+  WP2:
+    name: PB02
+    definition: Atmel:SAMD21_Drivers:0.0.1::SAMD21G18A-MF::pad::PB02
+    mode: Digital output
+    user_label: WP2
+    configuration:
+      pad_initial_level: High
 toolchain_options: []

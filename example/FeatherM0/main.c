@@ -15,8 +15,7 @@ int main(void)
      
     /* Initializes MCU, SPI device, and SPI Flash buffers. */
     atmel_start_init();
-    flash_initSPI();
-    flash_init_buffers();
+    flash_init();
     
     /* Allow time for memory device initial setup (minimum power-up time)
      * before sending reset signal. Minimum time is 250us. */
@@ -45,7 +44,7 @@ int main(void)
     int j;
     for(j = 0; j < MAX_BAD_BLOCKS; j++)
     {
-        usb_send_buffer((uint8_t *) badBlockTable[j], 4);
+        usb_send_buffer((uint8_t *) &badBlockTable[j], 4);
         usb_put(newLine);
     }
 

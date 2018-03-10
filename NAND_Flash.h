@@ -19,13 +19,12 @@
 /* DEFINES */
 #define PAGE_SIZE_EXTRA  (2176)         /* Maximum NAND Flash page size (*including* extra space) */
 #define PAGE_SIZE_LESS   (2048)         /* Maximum NAND Flash page size (*excluding* extra space) */
-#define MAX_NUM_BLOCKS   (0x80)         /* Maximum number of blocks within the device */
-#define MAX_BAD_BLOCKS   (100)          /* Guaranteed maximum number of bad blocks for this device */
+#define MAX_BAD_BLOCKS   (40)           /* Guaranteed maximum number of bad blocks for this device */
 #define BUFFER_SIZE      (2180)         /* Max SPI buffer size (page size plus room for commands) */
 #define BAD_BLK_ADDR     (0x800)        /* Address of the bad block mark on the first page of each block */
 #define ECC_START_ADDR   (0x840)        /* Address of start of error correction flags (last 8 bytes) */
 #define MAX_PAGE_SIZE    (2176)         /* Maximum bytes per page. Includes spare area.  */
-#define NUM_BLOCKS       (2048)         /* Number of blocks per pane. 2Gb device has 2 panes. */
+#define NUM_BLOCKS       (2048)         /* Maximum number of blocks within the device */
 
 /* CONSTANT DECLARATIONS */
 extern const uint8_t RESET[1];          /* Command to reset the memory device */
@@ -51,9 +50,18 @@ struct   spi_xfer spi_flash_buff;       /* SPI transfer descriptor */
 
 /* BAD BLOCK TABLE - the device is guaranteed to have a maximum of 2% of its blocks go bad 
  * within its lifetime. For this device, that means a maximum total of 41 blocks. */
-uint32_t badBlockTable[MAX_BAD_BLOCKS];
+extern uint32_t badBlockTable[MAX_BAD_BLOCKS];
 
 /* FUNCTION DECLARATIONS */
+/*************************************************************
+ * FUNCTION: flash_init()
+ * -----------------------------------------------------------
+ * This function calls the other flash initialization 
+ * functions to initialize SPI buffers, SPI device, and 
+ * initialize the bad block table.
+ *************************************************************/
+void flash_init();
+
 /*************************************************************
  * FUNCTION: flash_initSPI()
  * -----------------------------------------------------------
