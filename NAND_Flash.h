@@ -26,6 +26,13 @@
 #define MAX_PAGE_SIZE    (2176)         /* Maximum bytes per page. Includes spare area.  */
 #define NUM_BLOCKS       (2048)         /* Maximum number of blocks within the device */
 
+typedef struct 
+{
+    char      signature[8];                     /* Contains an 8-byte code to ensure the device has been configured. */
+    uint32_t  badBlockTable[MAX_BAD_BLOCKS];    /* Contains an array of bad block addresses that should not be written to. */
+    uint8_t   badBlockCount;                    /* How many bad blocks are currently known on the device. */
+} SUPERBLOCK_t;
+
 /* CONSTANT DECLARATIONS */
 extern const uint8_t RESET[1];          /* Command to reset the memory device */
 extern const uint8_t GET_FEAT[2];       /* Command to get the current contents of the status register */
@@ -61,6 +68,15 @@ extern uint32_t badBlockTable[MAX_BAD_BLOCKS];
  * initialize the bad block table.
  *************************************************************/
 void flash_init();
+
+/*************************************************************
+ * FUNCTION: flash_read_superblock()
+ * -----------------------------------------------------------
+ * This function reads the first page of the device for data.
+ * The data stored here should be a struct of superblock
+ * values.
+ *************************************************************/
+void flash_read_superblock();
 
 /*************************************************************
  * FUNCTION: flash_initSPI()
@@ -175,6 +191,14 @@ bool flash_is_busy();
 uint8_t flash_block_erase(uint8_t blockAddress[]);
 
 /*************************************************************
+ * FUNCTION: flash_erase_device()
+ * -----------------------------------------------------------
+ * This function erases the entire flash device except for the
+ * first block of data. 
+ *************************************************************/
+uint8_t flash_erase_device();
+
+/*************************************************************
  * FUNCTION: flash_block_lock_status()
  * -----------------------------------------------------------
  * This function gets the status of the block lock register.
@@ -240,5 +264,7 @@ uint8_t read_from_cache(uint8_t columnAddress[], uint8_t pageData[]);
  * device.
  *************************************************************/
 uint8_t build_bad_block_table();
+
+uint8_t check_for_bad_block_table();
 
 #endif /* NAND_FLASH_H_ */

@@ -48,7 +48,37 @@ void flash_init()
 {
     flash_initSPI();
     flash_init_buffers();
+    //flash_read_superblock() will replace the following function eventually. 
     flash_init_BBT();
+}
+
+/*************************************************************
+ * FUNCTION: flash_read_superblock()
+ * -----------------------------------------------------------
+ * This function reads the first page of the device for data.
+ * The data stored here should be a struct of superblock
+ * values, as defined in the SUPERBLOCK struct in the
+ * NAND_Flash.h file. This function will first check for the 
+ * signature. If the signature is found, then the bad block
+ * table will be created from the data stored here. If the 
+ * signature is not found, a bad block table will be created
+ * from scratch (this may take up to 15 minutes). If a new
+ * superblock is created, the signature will be the last 
+ * parameter updated. This ensures that if the signature is
+ * present, then so is the bad block table. The bad block
+ * table size will be stored in the superblock as well.
+ *
+ * Parameters: none
+ *
+ * Returns: void
+ *************************************************************/
+void flash_read_superblock()
+{
+    //check for superblock, if one exists cache its values on micro
+    
+    //if superblock does not exist, create one. keep copy on micro
+    // but write back immediately to flash as well
+    
 }
 
 /*************************************************************
