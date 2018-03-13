@@ -8,33 +8,20 @@ int main(void)
     uint32_t colAddress       = 0x0000;                       //Column address for in-page offset
     uint32_t pageBlockAddress = 0x002000;                     //Block and page address. Left 18 bits block address, right 6 bits page address
     uint32_t testBlockAddress = 0x002000;
+    uint32_t firstPage = 0x000000;
    
     /* VARIABLE DECLARATIONS */
     volatile uint8_t  status;
     volatile uint32_t badBlockCount;
     uint8_t pageData[PAGE_SIZE_EXTRA];
-    
-    int i;
-    for(i = 0; i < PAGE_SIZE_EXTRA; i++)
-        pageData[i] = 0;
+       
      
     /* Initializes MCU, SPI device, and SPI Flash buffers. */
     atmel_start_init();
     flash_init();
-    
-    /* Allow time for memory device initial setup (minimum power-up time)
-     * before sending reset signal. Minimum time is 250us. */
-    delay_ms(1);
-    
-    /* Reset slave device (memory chip). */ 
-    status = flash_reset();     //status should be 0x01 if busy and 0x00 when done
-    
-    /* Minimum 1.25ms delay after reset command before any
-     * other commands can be issued. Rounded up to 2ms. */
-    delay_ms(200);
-    
-     /* Read a page from memory. */
-     status = flash_read_page((uint8_t *) &testBlockAddress, (uint8_t *) &colAddress, pageData);
+
+    /* Read a page from memory. */
+    status = flash_read_page((uint8_t *) &firstPage, (uint8_t *) &colAddress, pageData);
     
     char message[] = "Before bad block count\n";
     delay_ms(5000);
@@ -62,21 +49,11 @@ int main(void)
         usb_put(newLine);
     }
 
-    /* Unlock all blocks (locked by default at power up). Returns status of the
-     * block lock register. If the blocks are already unlocked, the unlock 
-     * command will not be sent. */
-    status = flash_block_lock_status();
-    
-    if(status > 0)
-    {
-        status = flash_unlock_all_blocks();
-    }        
-
     /* Read a page from memory. */
     status = flash_read_page((uint8_t *) &pageBlockAddress, (uint8_t *) &colAddress, pageData);
     
     /* Erase a block. (Don't do this yet, wait until bad block table code is established) */
-    //status = flash_BlockErase(pageBlockAddress);
+    //status = flash_block_erase(pageBlockAddress);
     
     /* Check status register. */
     status = flash_status();    //status should be zero if flash is not busy

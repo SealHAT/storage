@@ -30,8 +30,10 @@ const uint8_t UNLOCK_BLOCKS[3]  = {0x1F, 0xA0, 0x00};       /* Command to check 
 const uint8_t BUSY_MASK         = 0x01;                     /* Mask for checking if the flash is busy */
 const uint8_t PROG_FAIL         = 0b00001000;               /* Mask for checking if the memory was programmed successfully */
 const uint8_t WEL_MASK          = 0x02;                     /* Mask for checking if write enable is high */
+const char SIGNATURE[SIGNATURE_SIZE] = "SealHAT!";
 
 uint32_t badBlockTable[MAX_BAD_BLOCKS];
+SUPERBLOCK_t superblock;
 
 /*************************************************************
  * FUNCTION: flash_init()
@@ -46,10 +48,37 @@ uint32_t badBlockTable[MAX_BAD_BLOCKS];
  *************************************************************/
 void flash_init()
 {
+    uint8_t status;
+    
+    /* Allow time for memory device initial setup (minimum power-up time)
+     * before sending reset signal. Minimum time is 250us. */ 
+    delay_ms(1);
+    
+    /* Initialize SPI and SPI buffers. */
     flash_initSPI();
     flash_init_buffers();
-    //flash_read_superblock() will replace the following function eventually. 
     flash_init_BBT();
+    
+    /* Reset slave device (memory chip). */ 
+    status = flash_reset();     //status should be 0x01 if busy and 0x00 when done
+    
+    /* Minimum 1.25ms delay after reset command before any
+     * other commands can be issued. Rounded up to 2ms. */
+    delay_ms(200);
+    
+    /* Unlock all blocks (locked by default at power up). Returns status of the
+     * block lock register. If the blocks are already unlocked, the unlock 
+     * command will not be sent. */
+    status = flash_block_lock_status();
+    
+    if(status > 0)
+    {
+        status = flash_unlock_all_blocks();
+    } 
+
+    /* Read superblock data. If superblock does not exist on device, create one. */
+    flash_read_superblock();
+    
 }
 
 /*************************************************************
@@ -74,11 +103,167 @@ void flash_init()
  *************************************************************/
 void flash_read_superblock()
 {
+    volatile uint8_t  status;                    /* Value of the status register */
+    uint32_t address;                   /* Block and page offset */
+    uint32_t colAddress;                /* Column offset within a page */
+    uint8_t  page[PAGE_SIZE_EXTRA];     /* Holds first page of data on flash device */
+    bool     valid;                     /* Status of the superblock data */
+    
+    /* INITIALIZATIONS - start at block zero, column zero. */
+    address     = 0x000000;
+    colAddress  = 0x0000;
+    
+    int i;
+    for(i = 0; i < PAGE_SIZE_EXTRA; i++)
+    {
+        page[i] = 0;
+    }
+    
+    /* TODO - block erase for testing. erases first page. remove later! */
+    status = flash_block_erase((uint8_t *) &address);
+        
     //check for superblock, if one exists cache its values on micro
+    /* Read first page of memory to check for superblock. */
+    status = flash_read_page((uint8_t *) &address, (uint8_t *) &colAddress, page);
+    
+    /* Read the data into a struct for further processing. */
+    init_cache_superblock(page, PAGE_SIZE_EXTRA);
+    
+    valid = validate_superblock();
     
     //if superblock does not exist, create one. keep copy on micro
     // but write back immediately to flash as well
+    if(!valid)
+    {
+        //call init_bbt
+        //erase block 0
+        //write superblock data to block zero
+        
+        uint32_t badBlocks[] = {0x1000, 0x1040, 0x1080, 0x10C0, 0x2000, 0x2040, 0x2080, 0x20C0};
+            
+        /* For testing */  
+        int i;
+        for(i = 0; i < SIGNATURE_SIZE; i++)
+        {
+            page[i] = SIGNATURE[i];
+        }
+            
+        page[i] = 8;
+            
+        int j = 0;
+        while(j < 8)
+        {
+            page[i]   = (uint8_t) (badBlocks[j] >> 24);
+            page[++i] = (uint8_t) (badBlocks[j] >> 16);
+            page[++i] = (uint8_t) (badBlocks[j] >> 8);
+            page[++i] = (uint8_t) (badBlocks[j]);
+            i++;
+            j++;
+        }
+            
+        while(i < PAGE_SIZE_LESS)
+        {
+            page[i] = 0;
+            i++;
+        }
+        
+        flash_write_page(page, PAGE_SIZE_EXTRA, (uint8_t *) &colAddress, (uint8_t*) &address);
+    }
+  
+}
+
+/*************************************************************
+ * FUNCTION: validate_superblock()
+ * -----------------------------------------------------------
+ * This function takes the superblock data and validates it.
+ * The device signature is checked first to ensure a valid 
+ * signature exists on the device. If no signature is found,
+ * or if the signature is incorrect, then the superblock is
+ * considered invalid. The superblock is also considered 
+ * invalid when the stored bad block count is greater than
+ * the calculated maximum bad block value. 
+ *
+ * Parameters: none
+ *
+ * Returns:
+ *      valid   :   Status of the superblock data.
+ *************************************************************/
+bool validate_superblock()
+{
+    bool valid;         /* Keeps track of if superblock params are valid */
+    int  i;
     
+    /* INITIALIZATIONS */
+    valid = true;
+    
+    /* Iterate through 8 bytes of data checking for a valid device signature. */
+    i = 0;
+    while(i < SIGNATURE_SIZE && valid)
+    {
+        if(superblock.signature[i] != SIGNATURE[i])
+        {
+            valid = false;
+        }
+        i++;
+    }
+    
+    /* The manufacturer guarantees that only a certain number of blocks will
+     * go bad within the lifetime of the device. If the value of this is 
+     * outside of the MAX_BAD_BLOCKS calculation, then there was either an 
+     * error when determining bad blocks or the device is bad and should
+     * not be used. */
+    if(superblock.badBlockCount > MAX_BAD_BLOCKS)
+    {
+        valid = false;
+    }
+    
+    return (valid);
+}
+
+/*************************************************************
+ * FUNCTION: init_cache_superblock()
+ * -----------------------------------------------------------
+ * This function takes the superblock data and stores it in a
+ * struct that may be accessed during runtime. This function
+ * does not check to see if the data is valid. That check is
+ * done in the validate_superblock function. 
+ *
+ * Parameters:
+ *      page[]      :   Contains a page of data. 
+ *      pageSize    :   Size of the page data.
+ *
+ * Returns: void
+ *************************************************************/
+void init_cache_superblock(uint8_t page[], int pageSize)
+{
+    /* Superblock is global in this file. */
+    int i;          /* Current page index. */
+    int j;          /* Bad block table index. */
+    int k;          /* Loop control variable. */
+    
+    /* The first 8 bytes of data are the signature. */
+    for(i = 0; i < SIGNATURE_SIZE; i++)
+    {
+        superblock.signature[i] = page[i];
+    }
+    
+    /* The next byte is the number of bad blocks currently on the device */
+    superblock.badBlockCount = page[i];
+    i++;
+    
+    /* The next number of bytes specified by the badBlockCount attribute 
+     * contain the addresses of the known bad blocks. */
+    j = 0;
+    while((j < superblock.badBlockCount) && (j < MAX_BAD_BLOCKS))
+    {
+        /* Each address is 32 bits, but each array index is only one 
+         * byte long. Four values are read in and bit shifted to create
+         * a single 32-bit value. MSB -> LSB */
+        superblock.badBlockTable[j] = (((uint32_t) page[i]) << 24) | (((uint32_t) page[++i]) << 16) | 
+                                      (((uint32_t) page[++i]) << 8) | ((uint32_t) page[++i]);
+        i++;
+        j++;
+    }
 }
 
 /*************************************************************
@@ -475,7 +660,7 @@ bool flash_is_busy()
  *************************************************************/
 uint8_t flash_block_erase(uint8_t blockAddress[])
 {
-     uint8_t status = flash_status();
+     volatile uint8_t status = flash_status();
 
     /* If the device is not busy, attempt to program it. */
     if((status & BUSY_MASK) == 0)
@@ -547,7 +732,7 @@ uint8_t flash_erase_device()
     for(i = 1; i < NUM_BLOCKS; i++)
     {
         /* Only a single block is able to be erased at any given time. */
-        status = flash_block_erase(address);
+        status = flash_block_erase((uint8_t *) address);
         
         /* Wait until device is not busy. */
         flash_wait_until_not_busy();

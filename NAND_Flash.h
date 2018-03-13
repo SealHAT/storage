@@ -26,11 +26,14 @@
 #define MAX_PAGE_SIZE    (2176)         /* Maximum bytes per page. Includes spare area.  */
 #define NUM_BLOCKS       (2048)         /* Maximum number of blocks within the device */
 
+#define SIGNATURE_SIZE   (8)            /* The signature in the superblock is 8 bytes long */
+extern const char SIGNATURE[SIGNATURE_SIZE];
+
 typedef struct 
 {
     char      signature[8];                     /* Contains an 8-byte code to ensure the device has been configured. */
-    uint32_t  badBlockTable[MAX_BAD_BLOCKS];    /* Contains an array of bad block addresses that should not be written to. */
     uint8_t   badBlockCount;                    /* How many bad blocks are currently known on the device. */
+    uint32_t  badBlockTable[MAX_BAD_BLOCKS];    /* Contains an array of bad block addresses that should not be written to. */
 } SUPERBLOCK_t;
 
 /* CONSTANT DECLARATIONS */
@@ -77,6 +80,25 @@ void flash_init();
  * values.
  *************************************************************/
 void flash_read_superblock();
+
+/*************************************************************
+ * FUNCTION: validate_superblock()
+ * -----------------------------------------------------------
+ * This function takes the superblock data and validates it.
+ * Both the device signature and the number of bad blocks are
+ * validated. 
+ *************************************************************/
+bool validate_superblock();
+
+/*************************************************************
+ * FUNCTION: init_cache_superblock()
+ * -----------------------------------------------------------
+ * This function takes the superblock data and stores it in a
+ * struct that may be accessed during runtime. This function
+ * does not check to see if the data is valid. That check is
+ * done in the validate_superblock function.
+ *************************************************************/
+void init_cache_superblock(uint8_t page[], int pageSize);
 
 /*************************************************************
  * FUNCTION: flash_initSPI()
