@@ -54,8 +54,8 @@ const MENU_t* menu_navigate(const MENU_t* mnu, const uint32_t selection)
         // 0 index so subtract 1 and get its pointer from the array
         nextMnu = mnu->submenu[selection-1];
 
-        // if the menu chosen has no submenus, then it is a command
-        // execute the command and return the origional menu.
+        // if the menu chosen has no sub-menus, then it is a command
+        // execute the command and return the original menu.
         if(nextMnu->num_submenus == 0 && nextMnu->command != NULL) {
             nextMnu->command(nextMnu->data_payload);
         }
