@@ -287,6 +287,12 @@ uint8_t read_from_cache(uint8_t columnAddress[], uint8_t pageData[]);
  *************************************************************/
 uint8_t build_bad_block_table();
 
-uint8_t check_for_bad_block_table();
+/**************************************************************
+ * FUNCTION: flash_get_superblock()
+ * ------------------------------------------------------------
+ * This function returns the address of the superblock. Only 
+ * for testing.
+ *************************************************************/
+SUPERBLOCK_t *flash_get_superblock();
 
 #endif /* NAND_FLASH_H_ */

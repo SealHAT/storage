@@ -9,67 +9,71 @@ int main(void)
     uint32_t pageBlockAddress = 0x002000;                     //Block and page address. Left 18 bits block address, right 6 bits page address
     uint32_t testBlockAddress = 0x002000;
     uint32_t firstPage = 0x000000;
+    char welcome[] = "About to initialize device...\n";
+    char message[] = "Before bad block count\n";
+    char goodbye[] = "Goodbye!\n";
+    char newLine = '\n';
    
     /* VARIABLE DECLARATIONS */
     volatile uint8_t  status;
     volatile uint32_t badBlockCount;
     uint8_t pageData[PAGE_SIZE_EXTRA];
-       
-     
+    int retVal;
+    int j;
+    volatile SUPERBLOCK_t superblock;
+   
     /* Initializes MCU, SPI device, and SPI Flash buffers. */
     atmel_start_init();
+    
+    /* Wait for USB connection to be made with computer. */
+    do { /* NOTHING */ } while (!usb_dtr());
+        
+    /* Write welcome message to PC console. */
+    retVal = usb_write((uint8_t *) welcome, sizeof(welcome));
+        
     flash_init();
 
     /* Read a page from memory. */
     status = flash_read_page((uint8_t *) &firstPage, (uint8_t *) &colAddress, pageData);
     
-    char message[] = "Before bad block count\n";
-    delay_ms(5000);
-    usb_send_buffer((uint8_t *) message, 23);
+
+    /* Write message to computer. */
+    do
+    {
+         retVal = usb_write((uint8_t *) message, 23);
+    } while(retVal < 0);         
+
+    /* Iterate over bad block table and print to the computer. */ 
+    superblock = *flash_get_superblock();
     
-    int j;
-    char newLine = '\n';
+     do
+     {
+         retVal =usb_put(badBlockCount);
+     } while(retVal < 0);
     
+    do
+    {
+        retVal = usb_put(newLine);
+    } while(retVal < 0);
+
     for(j = 0; j < MAX_BAD_BLOCKS; j++)
     {
-        usb_send_buffer((uint8_t *) &badBlockTable[j], 4);
-        usb_put(newLine);
+        do
+        {
+            retVal = usb_write((uint8_t *) &badBlockTable[j], 4);
+        } while(retVal < 0);
+            
+        do
+        {
+            retVal = usb_put(newLine);
+        } while(retVal < 0);   
     }
     
-    /* Build a bad block table. (Just count bad blocks for now) 
-     * Very slow with debugger. */
-    badBlockCount = build_bad_block_table();
-
-    usb_put(badBlockCount);
-    usb_put(newLine);
-
-    for(j = 0; j < MAX_BAD_BLOCKS; j++)
+    /* Write message to computer. */
+    do
     {
-        usb_send_buffer((uint8_t *) &badBlockTable[j], 4);
-        usb_put(newLine);
-    }
-
-    /* Read a page from memory. */
-    status = flash_read_page((uint8_t *) &pageBlockAddress, (uint8_t *) &colAddress, pageData);
-    
-    /* Erase a block. (Don't do this yet, wait until bad block table code is established) */
-    //status = flash_block_erase(pageBlockAddress);
-    
-    /* Check status register. */
-    status = flash_status();    //status should be zero if flash is not busy
-
-    /* Set Write Enable bit. */ 
-    status = flash_set_WEL();    //status should be 0x02 if WEL was set
-
-    /* Write a page to memory. */ 
-    status = flash_write_page(USER_DATA, 4, (uint8_t *) &colAddress, (uint8_t *) &pageBlockAddress); 
-    
-     /* Next, check the status register for failures. */
-    delay_ms(5);
-    status = flash_status();
-
-    /* Read a page from memory. */
-    status = flash_read_page((uint8_t *) &pageBlockAddress, (uint8_t *) &colAddress, pageData);
+        retVal = usb_write((uint8_t *) goodbye, sizeof(goodbye));
+    } while(retVal < 0);
     
     /* Toggle LED on/off forever. */
     while(1) 

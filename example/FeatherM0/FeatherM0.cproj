@@ -149,11 +149,11 @@
           <AcmeProjectActionInfo Action="File" Source="usb/usb_protocol.c" IsConfig="false" Hash="tWUcFFv/c8ipnv3J//bMIg" />
           <AcmeProjectActionInfo Action="File" Source="usb/usb_protocol.h" IsConfig="false" Hash="EIEORPtDPE5AsfEkRF09CQ" />
           <AcmeProjectActionInfo Action="File" Source="main.c" IsConfig="false" Hash="k0AH7j+BrmdFhBPzCCMptA" />
-          <AcmeProjectActionInfo Action="File" Source="driver_init.c" IsConfig="false" Hash="4CPs+R9vB52T/SWTQBvZIw" />
-          <AcmeProjectActionInfo Action="File" Source="driver_init.h" IsConfig="false" Hash="jrXAFETfELeVcfXYJCO8WA" />
-          <AcmeProjectActionInfo Action="File" Source="atmel_start_pins.h" IsConfig="false" Hash="p+Ak3ZciHgs1vCl3iSOrRA" />
+          <AcmeProjectActionInfo Action="File" Source="driver_init.c" IsConfig="false" Hash="YHGiZf3GH45vwplgL7RDfw" />
+          <AcmeProjectActionInfo Action="File" Source="driver_init.h" IsConfig="false" Hash="hEb5ntVIaCBSRtwX4R6JSQ" />
+          <AcmeProjectActionInfo Action="File" Source="atmel_start_pins.h" IsConfig="false" Hash="iWrK3FqNoyPInypUHAMe9Q" />
           <AcmeProjectActionInfo Action="File" Source="examples/driver_examples.h" IsConfig="false" Hash="VxVCAKbxlAJ12cgy8UBDjA" />
-          <AcmeProjectActionInfo Action="File" Source="examples/driver_examples.c" IsConfig="false" Hash="8FYEC4WCmlNmhh4T3lcMkA" />
+          <AcmeProjectActionInfo Action="File" Source="examples/driver_examples.c" IsConfig="false" Hash="cP8VBR0SLP0jKuBrMZ9y+Q" />
           <AcmeProjectActionInfo Action="File" Source="hal/include/hal_adc_sync.h" IsConfig="false" Hash="1Z3ikKjJFcOx7/XVLtcwnA" />
           <AcmeProjectActionInfo Action="File" Source="hal/include/hpl_adc_async.h" IsConfig="false" Hash="tOpdyFPrUdotYYlEc/Rcbw" />
           <AcmeProjectActionInfo Action="File" Source="hal/include/hpl_adc_sync.h" IsConfig="false" Hash="U0G1cRAzJMbaUUv6J9zZ1Q" />
@@ -190,10 +190,10 @@
           <AcmeProjectActionInfo Action="File" Source="config/hpl_dmac_config.h" IsConfig="true" Hash="SHdxLw1U2akzI1NrICicSA" />
           <AcmeProjectActionInfo Action="File" Source="config/hpl_gclk_config.h" IsConfig="true" Hash="7pznmXVbLZPZBH+wxJu7mg" />
           <AcmeProjectActionInfo Action="File" Source="config/hpl_pm_config.h" IsConfig="true" Hash="GH0DautnKY3X7yLEFG4tgA" />
-          <AcmeProjectActionInfo Action="File" Source="config/hpl_sercom_config.h" IsConfig="true" Hash="O21mj+Zr8jzQL64GavxxzA" />
+          <AcmeProjectActionInfo Action="File" Source="config/hpl_sercom_config.h" IsConfig="true" Hash="tkhqxQgq+fzNt+Jp7Wfubw" />
           <AcmeProjectActionInfo Action="File" Source="config/hpl_sysctrl_config.h" IsConfig="true" Hash="CN/3La24Uq1DP7U0k1V4KQ" />
           <AcmeProjectActionInfo Action="File" Source="config/hpl_systick_config.h" IsConfig="true" Hash="tlT3lNDKWFe82MiGWfQzcA" />
-          <AcmeProjectActionInfo Action="File" Source="config/hpl_usb_config.h" IsConfig="true" Hash="OTnXMB+/o/b7gPmkxUTUeQ" />
+          <AcmeProjectActionInfo Action="File" Source="config/hpl_usb_config.h" IsConfig="true" Hash="uZLCe76DdK7R4a/SyUOJow" />
           <AcmeProjectActionInfo Action="File" Source="config/peripheral_clk_config.h" IsConfig="true" Hash="AKwmrw+2XxzjCuWvIpKtLQ" />
           <AcmeProjectActionInfo Action="File" Source="config/usbd_config.h" IsConfig="true" Hash="IMbypYSvp3oxApIQetDY3Q" />
         </AcmeActionInfos>
@@ -215,6 +215,19 @@
       <ToolName>J-Link</ToolName>
     </com_atmel_avrdbg_tool_samice>
     <avrtoolinterfaceclock>4000000</avrtoolinterfaceclock>
+    <custom>
+      <ToolOptions>
+        <InterfaceProperties>
+          <SwdClock>4000000</SwdClock>
+        </InterfaceProperties>
+        <InterfaceName>
+        </InterfaceName>
+      </ToolOptions>
+      <ToolType>custom</ToolType>
+      <ToolNumber>
+      </ToolNumber>
+      <ToolName>Custom Programming Tool</ToolName>
+    </custom>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)' == 'Release' ">
     <ToolchainSettings>
@@ -343,6 +356,7 @@
   <armgcc.common.outputfiles.eep>True</armgcc.common.outputfiles.eep>
   <armgcc.common.outputfiles.bin>True</armgcc.common.outputfiles.bin>
   <armgcc.common.outputfiles.srec>True</armgcc.common.outputfiles.srec>
+  <armgcc.compiler.general.ChangeDefaultCharTypeUnsigned>True</armgcc.compiler.general.ChangeDefaultCharTypeUnsigned>
   <armgcc.compiler.symbols.DefSymbols>
     <ListValues>
       <Value>DEBUG</Value>
@@ -476,6 +490,14 @@
     <Compile Include="..\..\NAND_Flash.h">
       <SubType>compile</SubType>
       <Link>NAND_Flash.h</Link>
+    </Compile>
+    <Compile Include="..\..\NAND_Test.c">
+      <SubType>compile</SubType>
+      <Link>NAND_Test.c</Link>
+    </Compile>
+    <Compile Include="..\..\NAND_Test.h">
+      <SubType>compile</SubType>
+      <Link>NAND_Test.h</Link>
     </Compile>
     <Compile Include="atmel_start.c">
       <SubType>compile</SubType>
@@ -885,17 +907,22 @@
     <Compile Include="main.c">
       <SubType>compile</SubType>
     </Compile>
-    <Compile Include="NAND_Test.c">
-      <SubType>compile</SubType>
-    </Compile>
-    <Compile Include="NAND_Test.h">
-      <SubType>compile</SubType>
-      <Link>NAND_Test.h</Link>
-    </Compile>
     <Compile Include="ringbuff\ringbuffer.c">
       <SubType>compile</SubType>
     </Compile>
     <Compile Include="ringbuff\ringbuffer.h">
+      <SubType>compile</SubType>
+    </Compile>
+    <Compile Include="sealhat_menu.c">
+      <SubType>compile</SubType>
+    </Compile>
+    <Compile Include="sealhat_menu.h">
+      <SubType>compile</SubType>
+    </Compile>
+    <Compile Include="SerialPrint.c">
+      <SubType>compile</SubType>
+    </Compile>
+    <Compile Include="SerialPrint.h">
       <SubType>compile</SubType>
     </Compile>
     <Compile Include="usb\class\cdc\device\cdcdf_acm.c">

@@ -295,7 +295,7 @@ drivers:
       spi_master_arch_dord: MSB first
       spi_master_arch_ibon: In data stream
       spi_master_arch_runstdby: false
-      spi_master_baud_rate: 115200
+      spi_master_baud_rate: 50000
       spi_master_character_size: 8 bits
       spi_master_dummybyte: 511
       spi_master_rx_enable: true
@@ -766,7 +766,7 @@ drivers:
       usb_arch_ep5_cache: Cached by 64 bytes buffer
       usb_arch_ep6_cache: Cached by 64 bytes buffer
       usb_arch_ep7_cache: Cached by 64 bytes buffer
-      usb_ep1_I_CACHE: No cache
+      usb_ep1_I_CACHE: Cached by 64 bytes buffer
       usb_ep2_I_CACHE: No cache
       usb_ep3_I_CACHE: No cache
       usb_ep4_I_CACHE: No cache
@@ -800,13 +800,6 @@ pads:
     mode: Analog
     user_label: A0
     configuration: null
-  CS2:
-    name: PA05
-    definition: Atmel:SAMD21_Drivers:0.0.1::SAMD21G18A-MF::pad::PA05
-    mode: Digital output
-    user_label: CS2
-    configuration:
-      pad_initial_level: High
   VBATT:
     name: PA07
     definition: Atmel:SAMD21_Drivers:0.0.1::SAMD21G18A-MF::pad::PA07
@@ -844,8 +837,7 @@ pads:
     definition: Atmel:SAMD21_Drivers:0.0.1::SAMD21G18A-MF::pad::PA12
     mode: Digital input
     user_label: MISO
-    configuration:
-      pad_pull_config: Pull-up
+    configuration: null
   LED_BUILTIN:
     name: PA17
     definition: Atmel:SAMD21_Drivers:0.0.1::SAMD21G18A-MF::pad::PA17
@@ -878,11 +870,4 @@ pads:
     mode: Advanced
     user_label: USB_P
     configuration: null
-  WP2:
-    name: PB02
-    definition: Atmel:SAMD21_Drivers:0.0.1::SAMD21G18A-MF::pad::PB02
-    mode: Digital output
-    user_label: WP2
-    configuration:
-      pad_initial_level: High
 toolchain_options: []
