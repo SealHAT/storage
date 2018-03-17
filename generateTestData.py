@@ -11,19 +11,24 @@ dataRange = pageSize*10;    #size of ten pages of data
 count = 1                   #counter for data formatting
 
 #open output file and write first part of array declaration
-file = open("testdata.txt", "w")
-file.write("uint8_t TEST_DATA[] = {\n")
+file = open("HeaderData.txt", "w");
+file.write("uint8_t TEST_DATA[] = {\n");
+unformattedData = open("OriginalData.txt", "w");
 
 #generate random 8-bit numbers and format them like an array
 #declaration. there will be 20 numbers per line, comma 
 #delimited
 for i in range(dataRange):
     #randomly generate 8-bit uint and write to file
-    file.write(str(randint(0, 255)))
+    randomNum = randint(0, 255);
+    file.write(str(randomNum));
+    unformattedData.write(str(randomNum));
 
     #if not the last data entry, add a comma after the number
+    #or a newline depending on which file we're writing to
     if i != (dataRange - 1):
-        file.write(", ")
+        file.write(", ");
+        unformattedData.write("\n");
 
     #if the 20th data entry in line, move to new line unless
     #we're at the last data entry
@@ -36,3 +41,4 @@ for i in range(dataRange):
 #add the closing array declaration bracket and close output file
 file.write("};")
 file.close()
+unformattedData.close()

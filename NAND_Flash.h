@@ -17,16 +17,16 @@
 #include "HelperFunctions.h"
 
 /* DEFINES */
-#define PAGE_SIZE_EXTRA  (2176)         /* Maximum NAND Flash page size (*including* extra space) */
-#define PAGE_SIZE_LESS   (2048)         /* Maximum NAND Flash page size (*excluding* extra space) */
-#define MAX_BAD_BLOCKS   (40)           /* Guaranteed maximum number of bad blocks for this device */
-#define BUFFER_SIZE      (2180)         /* Max SPI buffer size (page size plus room for commands) */
-#define BAD_BLK_ADDR     (0x800)        /* Address of the bad block mark on the first page of each block */
-#define ECC_START_ADDR   (0x840)        /* Address of start of error correction flags (last 8 bytes) */
-#define MAX_PAGE_SIZE    (2176)         /* Maximum bytes per page. Includes spare area.  */
-#define NUM_BLOCKS       (2048)         /* Maximum number of blocks within the device */
+#define PAGE_SIZE_EXTRA  (2176)                 /* Maximum NAND Flash page size (*including* extra space) */
+#define PAGE_SIZE_LESS   (2048)                 /* Maximum NAND Flash page size (*excluding* extra space) */
+#define MAX_BAD_BLOCKS   (40)                   /* Guaranteed maximum number of bad blocks for this device */
+#define BUFFER_SIZE      (2180)                 /* Max SPI buffer size (page size plus room for commands) */
+#define BAD_BLK_ADDR     (0x800)                /* Address of the bad block mark on the first page of each block */
+#define ECC_START_ADDR   (0x840)                /* Address of start of error correction flags (last 8 bytes) */
+#define MAX_PAGE_SIZE    (2176)                 /* Maximum bytes per page. Includes spare area.  */
+#define NUM_BLOCKS       (2048)                 /* Maximum number of blocks within the device */
 
-#define SIGNATURE_SIZE   (8)            /* The signature in the superblock is 8 bytes long */
+#define SIGNATURE_SIZE   (8)                    /* The signature in the superblock is 8 bytes long */
 extern const char SIGNATURE[SIGNATURE_SIZE];
 
 typedef struct 
@@ -34,29 +34,30 @@ typedef struct
     char      signature[8];                     /* Contains an 8-byte code to ensure the device has been configured. */
     uint8_t   badBlockCount;                    /* How many bad blocks are currently known on the device. */
     uint32_t  badBlockTable[MAX_BAD_BLOCKS];    /* Contains an array of bad block addresses that should not be written to. */
+    uint8_t   badBlockIndex;                    /* Keeps track of next bad block to look out for. */
 } SUPERBLOCK_t;
 
 /* CONSTANT DECLARATIONS */
-extern const uint8_t RESET[1];          /* Command to reset the memory device */
-extern const uint8_t GET_FEAT[2];       /* Command to get the current contents of the status register */
-extern const uint8_t SET_WEL[1];        /* Command to set the write enable bit in in the status register */
-extern const uint8_t PROG_LOAD[3];      /* Command to load data from micro into cache of memory device. Last 2 bytes page column address */
-extern const uint8_t PEXEC[4];          /* Command to program the main memory array from the memory devices cache register */
-extern const uint8_t PAGE_READ[4];      /* Command to read data from main array into data cache */
-extern const uint8_t READ_CACHE[3];     /* Command to read data from memory device cache to SPI buffer */
-extern const uint8_t ERASE[1];          /* Command to erase a block of data */
-extern const uint8_t GET_BLOCK_LOCK[2]; /* Command to check the block lock status */
-extern const uint8_t UNLOCK_BLOCKS[3];  /* Command to check the block lock status */
+extern const uint8_t RESET[1];                  /* Command to reset the memory device */
+extern const uint8_t GET_FEAT[2];               /* Command to get the current contents of the status register */
+extern const uint8_t SET_WEL[1];                /* Command to set the write enable bit in in the status register */
+extern const uint8_t PROG_LOAD[3];              /* Command to load data from micro into cache of memory device. Last 2 bytes page column address */
+extern const uint8_t PEXEC[4];                  /* Command to program the main memory array from the memory devices cache register */
+extern const uint8_t PAGE_READ[4];              /* Command to read data from main array into data cache */
+extern const uint8_t READ_CACHE[3];             /* Command to read data from memory device cache to SPI buffer */
+extern const uint8_t ERASE[1];                  /* Command to erase a block of data */
+extern const uint8_t GET_BLOCK_LOCK[2];         /* Command to check the block lock status */
+extern const uint8_t UNLOCK_BLOCKS[3];          /* Command to check the block lock status */
 
 /* MASKS */
-extern const uint8_t BUSY_MASK;         /* Mask for checking if the flash is busy */
-extern const uint8_t PROG_FAIL;         /* Mask for checking if the memory was programmed successfully */
-extern const uint8_t WEL_MASK;          /* Mask for checking if write enable is high */
+extern const uint8_t BUSY_MASK;                 /* Mask for checking if the flash is busy */
+extern const uint8_t PROG_FAIL;                 /* Mask for checking if the memory was programmed successfully */
+extern const uint8_t WEL_MASK;                  /* Mask for checking if write enable is high */
 
 /* SPI COMMUNICATION BUFFERS */
-uint8_t  flash_MOSI[BUFFER_SIZE];       /* Master's output buffer */
-uint8_t  flash_MISO[BUFFER_SIZE];       /* Master's input buffer */
-struct   spi_xfer spi_flash_buff;       /* SPI transfer descriptor */
+uint8_t  flash_MOSI[BUFFER_SIZE];               /* Master's output buffer */
+uint8_t  flash_MISO[BUFFER_SIZE];               /* Master's input buffer */
+struct   spi_xfer spi_flash_buff;               /* SPI transfer descriptor */
 
 /* BAD BLOCK TABLE - the device is guaranteed to have a maximum of 2% of its blocks go bad 
  * within its lifetime. For this device, that means a maximum total of 41 blocks. */
@@ -195,6 +196,29 @@ void flash_wait_until_not_busy();
 uint8_t flash_read_page(uint8_t blockPageAddress[], uint8_t columnAddress[], uint8_t pageData[]);
 
 /*************************************************************
+ * FUNCTION: flash_read()
+ * -----------------------------------------------------------
+ * This function calls the flash_read_page function to read a 
+ * page of data. This occurs only after the block address has
+ * been adjusted to account for the bad blocks that were 
+ * skipped. This occurs by calling the calculate_block_offset
+ * function before the flash_read_page function is called. 
+ *
+ * Parameters: 
+ *      blockAddress    :   Given block address before offset
+ *      columnAddress   :   Where to start reading a page
+ *      dataBuffer[]    :   Holds the data that is read
+ *      dataSize        :   Size of data to read
+ *
+ * Returns:
+ *      status          :   Current status of the device
+ *************************************************************/
+uint8_t flash_read(uint32_t blockAddress, uint32_t columnAddress, uint8_t dataBuffer[], int dataSize);
+
+
+uint8_t flash_write(uint32_t blockAddress, uint32_t columnAddress, uint8_t dataBuffer[], int dataSize);
+
+/*************************************************************
  * FUNCTION: flash_is_busy()
  * -----------------------------------------------------------
  * This function checks the busy flag in the status register. 
@@ -294,5 +318,21 @@ uint8_t build_bad_block_table();
  * for testing.
  *************************************************************/
 SUPERBLOCK_t *flash_get_superblock();
+
+/*************************************************************
+ * FUNCTION: calculate_block_offset()
+ * -----------------------------------------------------------
+ * This function calculates what the "correct" address should
+ * be for a given block address based on the bad block table.
+ * Bad blocks in the system will be skipped, and thus an 
+ * offset must occur.
+ *
+ * Parameters: 
+ *      startingBlockAddress    :   Given address
+ *
+ * Returns:
+ *      returnBlockAddress      :   Address after the offset
+ *************************************************************/
+uint32_t calculate_block_offset(uint32_t startingBlockAddress)
 
 #endif /* NAND_FLASH_H_ */

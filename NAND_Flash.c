@@ -103,7 +103,7 @@ void flash_init()
  *************************************************************/
 void flash_read_superblock()
 {
-    volatile uint8_t status;                    /* Value of the status register */
+    volatile uint8_t status;            /* Value of the status register */
     uint32_t address;                   /* Block and page offset */
     uint32_t colAddress;                /* Column offset within a page */
     uint8_t  page[PAGE_SIZE_EXTRA];     /* Holds first page of data on flash device */
@@ -276,6 +276,10 @@ void init_cache_superblock(uint8_t page[], int pageSize)
         i++;
         j++;
     }
+    
+    /* The bad block pointer just holds the array index of the next bad block
+     * in the bad block table. */
+    superblock.badBlockIndex = 0;
 }
 
 /*************************************************************
@@ -625,6 +629,71 @@ uint8_t flash_read_page(uint8_t blockPageAddress[], uint8_t columnAddress[], uin
     }
     
     return (status);
+}
+
+/*************************************************************
+ * FUNCTION: flash_read()
+ * -----------------------------------------------------------
+ * This function calls the flash_read_page function to read a 
+ * page of data. This occurs only after the block address has
+ * been adjusted to account for the bad blocks that were 
+ * skipped. This occurs by calling the calculate_block_offset
+ * function before the flash_read_page function is called. 
+ *
+ * Parameters: 
+ *      blockAddress    :   Given block address before offset
+ *      columnAddress   :   Where to start reading a page
+ *      dataBuffer[]    :   Holds the data that is read
+ *      dataSize        :   Size of data to read
+ *
+ * Returns:
+ *      status          :   Current status of the device
+ *************************************************************/
+uint8_t flash_read(uint32_t blockAddress, uint32_t columnAddress, uint8_t dataBuffer[], int dataSize)
+{
+    uint32_t offsetBlockAddress;    /* Corrected address of the page we should read from. */
+    uint8_t  status;                /* Value of the status register. */
+    
+    /* Shift the block address to account for bad blocks. */
+    offsetBlockAddress = calculate_block_offset(blockAddress);
+    (void)dataSize;
+    
+    /* Call page read with the updated block address. */
+    status = flash_read_page((uint8_t *) &offsetBlockAddress, (uint8_t *) &columnAddress, dataBuffer);
+    
+    return (status);
+}
+
+/*************************************************************
+ * FUNCTION: flash_write()
+ * -----------------------------------------------------------
+ * This function calls the flash_write_page function to write
+ * a page of data. This occurs only after the block address
+ * has  been adjusted to account for the bad blocks that were
+ * skipped. This occurs by calling the calculate_block_offset
+ * function before the flash_write_page function is called.
+ *
+ * Parameters: 
+ *      blockAddress    :   Given block address before offset
+ *      columnAddress   :   Where to start reading a page
+ *      dataBuffer[]    :   Holds the data that is read
+ *      dataSize        :   Size of data to read
+ *
+ * Returns:
+ *      status          :   Current status of the device
+ *************************************************************/
+uint8_t flash_write(uint32_t blockAddress, uint32_t columnAddress, uint8_t dataBuffer[], int dataSize)
+{
+    uint32_t offsetBlockAddress;    /* Corrected address of the page we should read from. */
+    uint8_t  status;                /* Value of the status register. */
+        
+    /* Shift the block address to account for bad blocks. */
+    offsetBlockAddress = calculate_block_offset(blockAddress);
+    (void)dataSize;
+    
+    status = flash_write_page(dataBuffer, dataSize, (uint8_t *) &columnAddress, (uint8_t *) &offsetBlockAddress);
+   
+   return (status);
 }
 
 /*************************************************************
@@ -1132,4 +1201,48 @@ uint8_t build_bad_block_table()
 SUPERBLOCK_t *flash_get_superblock()
 {
     return (&superblock);
+}
+
+/*************************************************************
+ * FUNCTION: calculate_block_offset()
+ * -----------------------------------------------------------
+ * This function calculates what the "correct" address should
+ * be for a given block address based on the bad block table.
+ * Bad blocks in the system will be skipped, and thus an 
+ * offset must occur.
+ *
+ * Parameters: 
+ *      startingBlockAddress    :   Given address
+ *
+ * Returns:
+ *      returnBlockAddress      :   Address after the offset
+ *************************************************************/
+uint32_t calculate_block_offset(uint32_t startingBlockAddress)
+{
+    uint32_t blockOffsetSize;             /* Amount to increase address by to get to next block. */
+    uint32_t returnBlockAddress;    /* Block address plus appropriate offset. */
+    
+    /* Initializations */
+    blockOffsetSize = 0x40;
+    superblock.badBlockIndex = 0;
+    
+    /* This loop figures out how many blocks this read should be shifted in order to get the data
+     * at the "correct" address. It also makes sure no collisions will occur with the new address. */
+    while((superblock.badBlockIndex < superblock.badBlockCount) && 
+         ((startingBlockAddress + (superblock.badBlockIndex*blockOffsetSize)) >= superblock.badBlockTable[superblock.badBlockIndex]))
+    {
+        superblock.badBlockIndex++;
+    }
+    
+    /* Calculate the appropriate offset and return. */
+    if(superblock.badBlockIndex == superblock.badBlockCount)
+    {
+        returnBlockAddress = startingBlockAddress + ((superblock.badBlockCount + 1)*blockOffsetSize);
+    }
+    else
+    {
+        returnBlockAddress = startingBlockAddress + (superblock.badBlockIndex*blockOffsetSize);
+    }
+    
+    return (returnBlockAddress);
 }
