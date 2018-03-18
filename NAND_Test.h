@@ -11,9 +11,17 @@
 
 #include "NAND_Flash.h"
 
-#define TEST_DATA_SIZE (20480) /* 10 pages (2048 * 10) */
+#define TEST_DATA_SIZE      (20480)     /* 10 pages (2048 * 10) */
+#define NUM_TEST_BLOCKS     (2000)      /* Number of blocks to write data to total. */
 
 uint8_t nand_test_driver();
+
+const char WELCOME[]     = "About to initialize device...\n";
+const char GOODBYE[]     = "Goodbye!\n";
+const char START_WRITE[] = "Device writing begin!\n";
+const char DONE_WRITE[]  = "Device writing complete.\n";
+const char START_READ[]  = "Begin device reading.\n";
+const char DONE_READ[]   = "Device reading complete!\n";
 
 uint8_t TEST_DATA[TEST_DATA_SIZE] = {
     190, 11, 105, 64, 170, 26, 137, 75, 66, 72, 243, 171, 101, 251, 62, 216, 212, 132, 22, 109,

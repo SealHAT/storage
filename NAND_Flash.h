@@ -23,8 +23,9 @@
 #define BUFFER_SIZE      (2180)                 /* Max SPI buffer size (page size plus room for commands) */
 #define BAD_BLK_ADDR     (0x800)                /* Address of the bad block mark on the first page of each block */
 #define ECC_START_ADDR   (0x840)                /* Address of start of error correction flags (last 8 bytes) */
-#define MAX_PAGE_SIZE    (2176)                 /* Maximum bytes per page. Includes spare area.  */
+#define MAX_PAGE_SIZE    (2176)                 /* Maximum bytes per page. Includes spare area */
 #define NUM_BLOCKS       (2048)                 /* Maximum number of blocks within the device */
+#define PAGES_PER_BLOCK  (64)                   /* Number of pages within each block of a device */
 
 #define SIGNATURE_SIZE   (8)                    /* The signature in the superblock is 8 bytes long */
 extern const char SIGNATURE[SIGNATURE_SIZE];
