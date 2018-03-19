@@ -17,17 +17,17 @@
 #include "HelperFunctions.h"
 
 /* DEFINES */
-#define PAGE_SIZE_EXTRA  (2176)                 /* Maximum NAND Flash page size (*including* extra space) */
-#define PAGE_SIZE_LESS   (2048)                 /* Maximum NAND Flash page size (*excluding* extra space) */
-#define MAX_BAD_BLOCKS   (40)                   /* Guaranteed maximum number of bad blocks for this device */
-#define BUFFER_SIZE      (2180)                 /* Max SPI buffer size (page size plus room for commands) */
-#define BAD_BLK_ADDR     (0x800)                /* Address of the bad block mark on the first page of each block */
-#define ECC_START_ADDR   (0x840)                /* Address of start of error correction flags (last 8 bytes) */
-#define MAX_PAGE_SIZE    (2176)                 /* Maximum bytes per page. Includes spare area */
-#define NUM_BLOCKS       (2048)                 /* Maximum number of blocks within the device */
-#define PAGES_PER_BLOCK  (64)                   /* Number of pages within each block of a device */
+#define PAGE_SIZE_EXTRA     (2176)                 /* Maximum NAND Flash page size (*including* extra space) */
+#define PAGE_SIZE_LESS      (2048)                 /* Maximum NAND Flash page size (*excluding* extra space) */
+#define MAX_BAD_BLOCKS      (40)                   /* Guaranteed maximum number of bad blocks for this device */
+#define NAND_BUFFER_SIZE    (2180)                 /* Max SPI buffer size (page size plus room for commands) */
+#define BAD_BLK_ADDR        (0x800)                /* Address of the bad block mark on the first page of each block */
+#define ECC_START_ADDR      (0x840)                /* Address of start of error correction flags (last 8 bytes) */
+#define MAX_PAGE_SIZE       (2176)                 /* Maximum bytes per page. Includes spare area */
+#define NUM_BLOCKS          (2048)                 /* Maximum number of blocks within the device */
+#define PAGES_PER_BLOCK     (64)                   /* Number of pages within each block of a device */
 
-#define SIGNATURE_SIZE   (8)                    /* The signature in the superblock is 8 bytes long */
+#define SIGNATURE_SIZE      (8)                    /* The signature in the superblock is 8 bytes long */
 extern const char SIGNATURE[SIGNATURE_SIZE];
 
 typedef struct 
@@ -56,8 +56,8 @@ extern const uint8_t PROG_FAIL;                 /* Mask for checking if the memo
 extern const uint8_t WEL_MASK;                  /* Mask for checking if write enable is high */
 
 /* SPI COMMUNICATION BUFFERS */
-uint8_t  flash_MOSI[BUFFER_SIZE];               /* Master's output buffer */
-uint8_t  flash_MISO[BUFFER_SIZE];               /* Master's input buffer */
+uint8_t  flash_MOSI[NAND_BUFFER_SIZE];          /* Master's output buffer */
+uint8_t  flash_MISO[NAND_BUFFER_SIZE];          /* Master's input buffer */
 struct   spi_xfer spi_flash_buff;               /* SPI transfer descriptor */
 
 /* BAD BLOCK TABLE - the device is guaranteed to have a maximum of 2% of its blocks go bad 
@@ -334,6 +334,6 @@ SUPERBLOCK_t *flash_get_superblock();
  * Returns:
  *      returnBlockAddress      :   Address after the offset
  *************************************************************/
-uint32_t calculate_block_offset(uint32_t startingBlockAddress)
+uint32_t calculate_block_offset(uint32_t startingBlockAddress);
 
 #endif /* NAND_FLASH_H_ */

@@ -7,7 +7,7 @@
 from random import *
 
 pageSize  = 2048            #size of a page in flash
-dataRange = pageSize*10;    #size of ten pages of data
+dataRange = pageSize*5;    #size of ten pages of data
 count = 1                   #counter for data formatting
 
 #open output file and write first part of array declaration

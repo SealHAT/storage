@@ -88,7 +88,7 @@ int32_t usb_write(void* outData, uint32_t BUFFER_SIZE);
  * @param outChar [IN] the byte of data to send to the host
  * @returns 0 if successful, or negative if error (as listed in err_codes.h)
  */
-static inline int32_t usb_put(uint8_t outChar) { return usb_write(&outChar, 1); }
+static inline int32_t usb_put(uint8_t outChar) { return (usb_write(&outChar, 1)); }
 
 /**
  * @brief flush the TX buffer and send it's contents to the USB host.
