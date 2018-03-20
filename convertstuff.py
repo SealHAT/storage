@@ -5,19 +5,17 @@
 #   page  RA[5:0]
 
 from random import *
+import ast
 
 pageSize  = 2048            #size of a page in flash
 dataRange = pageSize*5;     #size of ten pages of data
 count = 1                   #counter for data formatting
 
-#open output file and write first part of array declaration
-file = open("HeaderData.txt", "w");
-file.write("uint8_t TEST_DATA[] = {\n");
-unformattedData = open("OriginalData.txt", "w");
+#open input and output files
+originalData = open("OriginalData.txt", "r");
+originalData.read();
 
-#generate random 8-bit numbers and format them like an array
-#declaration. there will be 20 numbers per line, comma 
-#delimited
+#
 for i in range(dataRange):
     #randomly generate 8-bit uint and write to file
     randomNum = randint(0, 255);
@@ -38,7 +36,5 @@ for i in range(dataRange):
     else:
         count += 1
 
-#add the closing array declaration bracket and close output file
-file.write("};")
-file.close()
-unformattedData.close()
+#
+originalData.close()

@@ -16,6 +16,7 @@ char DONE_WRITE[25]  = "Device writing complete.\n";
 char START_READ[22]  = "Begin device reading.\n";
 char DONE_READ[25]   = "Device reading complete!\n";
 char NEW_LINE        = '\n';
+static char charBuffer[5];
 
 /*************************************************************
  * FUNCTION: nand_test_driver()
@@ -128,15 +129,20 @@ uint8_t nand_test_driver()
             /* Wait until device is done erasing. */
             flash_wait_until_not_busy();
             
-            /* Print page data. */
-            do {
-                retVal = usb_write(page, PAGE_SIZE_LESS);
-            } while(retVal < 0);
+            for(i = 0; i < PAGE_SIZE_LESS; i++)
+            {
+                sprintf(charBuffer, "%d\n", page[i]);
                 
-            /* Print new line character. */
-            do {
-                retVal = usb_write(&NEW_LINE, 1);
-            } while(retVal < 0);
+                /* Print page data. */
+                do {
+                    retVal = usb_write(charBuffer, strlen(charBuffer));
+                } while(retVal != USB_OK || retVal < 0);
+                
+                /* Print new line character. */
+                //do {
+                //    retVal = usb_write(&NEW_LINE, 1);
+                //} while(retVal < 0);
+            }                
                 
         } /* End pages per block loop. */
         

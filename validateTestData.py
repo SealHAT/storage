@@ -7,7 +7,7 @@
 import datetime
 
 pageSize = 2048
-dataRange = pageSize*10
+dataRange = pageSize*5*64
 originalData = []
 storedData = []
 errorCount = 0
