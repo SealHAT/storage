@@ -216,7 +216,6 @@ uint8_t flash_read_page(uint8_t blockPageAddress[], uint8_t columnAddress[], uin
  *************************************************************/
 uint8_t flash_read(uint32_t blockAddress, uint32_t columnAddress, uint8_t dataBuffer[], int dataSize);
 
-
 uint8_t flash_write(uint32_t blockAddress, uint32_t columnAddress, uint8_t dataBuffer[], int dataSize);
 
 /*************************************************************

@@ -5,14 +5,14 @@
  *  Author: kmcarrin
  */ 
 
-#ifndef NAND_TEST_H_
-#define NAND_TEST_H_
+#ifndef SMALL_NAND_TEST_H_
+#define SMALL_NAND_TEST_H_
 
-#include "usb_start.h"
 #include "NAND_Flash.h"
+#include "usb_start.h"
 
 #define TEST_DATA_SIZE      (10240)  /* 5 pages (2048 * 5) */
-#define NUM_TEST_BLOCKS     (5)   /* Number of blocks to write data to total. */
+#define NUM_TEST_BLOCKS     (5)      /* Number of blocks to write data to total. */
 
  /*************************************************************
  * STRINGS
@@ -41,7 +41,7 @@ extern char NEW_LINE; */
  **************************************************************/ 
 extern uint8_t TEST_DATA[TEST_DATA_SIZE];
 
-uint8_t nand_test_driver();
+uint8_t small_nand_test_driver();
 
  /*************************************************************
  * FUNCTION: nand_test_load_data()
@@ -51,6 +51,6 @@ uint8_t nand_test_driver();
  * TEST_DATA_SIZE elements. The value of TEST_DATA_SIZE must
  * be greater than PAGE_SIZE.
  *************************************************************/ 
-void nand_test_load_data(uint8_t page[], const int PAGE_SIZE);
+void small_nand_test_load_data(uint8_t page[], const int PAGE_SIZE);
 
-#endif /* NAND_TEST_H_ */
+#endif /* SMALL_NAND_TEST_H_ */
