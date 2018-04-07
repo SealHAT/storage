@@ -17,7 +17,7 @@ char START_READ[22]  = "Begin device reading.\n";
 char DONE_READ[25]   = "Device reading complete!\n";
 char NEW_LINE        = '\n';
 static char charBuffer[5];
-static char statBuffer[80];
+static char statBuffer[100];
 
 /*************************************************************
  * FUNCTION: nand_test_driver()
@@ -36,7 +36,7 @@ uint8_t small_nand_test_driver()
     static uint8_t pageCount;                 /* Loop control variable for writes and reads. Iterate over pages. */
     uint32_t blockAddress;              /* The micro stores values little endian but is configured to send SPI data big endian */
     uint32_t colAddress;                /* Column address for in-page offset */
-    volatile uint32_t address;                   /* The OR'd bits of block and page addresses to create a single 3 byte address. */
+    static uint32_t address;                   /* The OR'd bits of block and page addresses to create a single 3 byte address. */
     uint8_t  page[PAGE_SIZE_LESS];      /* Holds a page worth (PAGE_SIZE bytes) of data. */
     int      i;                         /* Loop control variable for printing. */
     
@@ -80,15 +80,6 @@ uint8_t small_nand_test_driver()
             
         /* Bitwise OR block count a page count to get 3-byte data address. */
         address = (blockAddress | pageCount);
-            
-        /* Write test data. */
-        status = flash_write(address, colAddress, page, PAGE_SIZE_LESS);
-        
-        sprintf(statBuffer, "status: %d    address: %lu    pageCount: %d\n", status, address, pageCount);
-        
-        do {
-            retVal = usb_write(statBuffer, sizeof(statBuffer));
-        } while(retVal != USB_OK);
         
         /* Wait until device is done erasing. */
         flash_wait_until_not_busy();
