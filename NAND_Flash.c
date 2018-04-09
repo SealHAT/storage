@@ -1241,7 +1241,7 @@ uint32_t calculate_block_offset(uint32_t startingBlockAddress)
     }
     
     /* Calculate the appropriate offset and return. */
-    if(superblock.badBlockIndex == superblock.badBlockCount)
+    if((superblock.badBlockCount > 0) && (superblock.badBlockIndex == superblock.badBlockCount))
     {
         returnBlockAddress = startingBlockAddress + ((superblock.badBlockCount + 1)*blockOffsetSize);
     }

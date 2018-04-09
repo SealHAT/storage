@@ -12,7 +12,7 @@
 #include "usb_start.h"
 
 #define TEST_DATA_SIZE      (10240)  /* 5 pages (2048 * 5) */
-#define NUM_TEST_BLOCKS     (5)      /* Number of blocks to write data to total. */
+#define NUM_TEST_BLOCKS     (1)      /* Number of blocks to write data to total. */
 
  /*************************************************************
  * STRINGS
@@ -20,13 +20,6 @@
  * These strings are used for input and output messages that
  * are printed to a PC console over serial connection.
  **************************************************************/ 
-/*extern char WELCOME[31];
-extern char GOODBYE[10];
-extern char START_WRITE[22];
-extern char DONE_WRITE[25];
-extern char START_READ[22];
-extern char DONE_READ[24];
-extern char NEW_LINE; */
 
 /*************************************************************
  * TEST DATA
