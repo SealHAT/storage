@@ -805,7 +805,6 @@ uint8_t flash_erase_device()
     /* VARIABLE DECLARATIONS */
     int i;                          /* Loop control variable */
     uint32_t address;               /* The micro stores values little endian but is configured to send SPI data big endian */
-    uint32_t tempAddress;
     uint32_t nextBlock;             /* Amount to increase address by to get to next block */
     uint8_t  status;                /* Value of the status register */
     uint8_t  tableIndex;            /* The current index of the bad block table */
@@ -1242,7 +1241,7 @@ uint32_t calculate_block_offset(uint32_t startingBlockAddress)
     }
     
     /* Calculate the appropriate offset and return. */
-    if(superblock.badBlockIndex == superblock.badBlockCount)
+    if((superblock.badBlockCount > 0) && (superblock.badBlockIndex == superblock.badBlockCount))
     {
         returnBlockAddress = startingBlockAddress + ((superblock.badBlockCount + 1)*blockOffsetSize);
     }

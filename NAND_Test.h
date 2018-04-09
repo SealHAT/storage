@@ -8,8 +8,8 @@
 #ifndef NAND_TEST_H_
 #define NAND_TEST_H_
 
-#include "NAND_Flash.h"
 #include "usb_start.h"
+#include "NAND_Flash.h"
 
 #define TEST_DATA_SIZE      (10240)  /* 5 pages (2048 * 5) */
 #define NUM_TEST_BLOCKS     (5)   /* Number of blocks to write data to total. */

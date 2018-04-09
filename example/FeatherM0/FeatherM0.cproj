@@ -490,13 +490,21 @@
       <SubType>compile</SubType>
       <Link>NAND_Flash.h</Link>
     </Compile>
-    <Compile Include="..\..\NAND_Test.c">
+    <None Include="..\..\NAND_Test.c">
       <SubType>compile</SubType>
       <Link>NAND_Test.c</Link>
-    </Compile>
-    <Compile Include="..\..\NAND_Test.h">
+    </None>
+    <None Include="..\..\NAND_Test.h">
       <SubType>compile</SubType>
       <Link>NAND_Test.h</Link>
+    </None>
+    <Compile Include="..\..\Small_NAND_Test.c">
+      <SubType>compile</SubType>
+      <Link>Small_NAND_Test.c</Link>
+    </Compile>
+    <Compile Include="..\..\Small_NAND_Test.h">
+      <SubType>compile</SubType>
+      <Link>Small_NAND_Test.h</Link>
     </Compile>
     <Compile Include="atmel_start.c">
       <SubType>compile</SubType>
