@@ -20,8 +20,7 @@ typedef struct {
 } outData_t;
 
 typedef struct {
-	volatile bool ready;				// insertion index to the buffer
-	volatile uint32_t sent;				// indicates if the bus is ready for an IN transaction (the last one finished)
+	volatile uint32_t waiting;				// number of bytes waiting to be sent
 	volatile enum usb_xfer_code lastCode;	// transfer code of the last completed transaction
 } inData_t;
 
@@ -68,8 +67,7 @@ static bool usb_in_complete(const uint8_t ep, const enum usb_xfer_code rc, const
 
 	// only modify state if the transfer was on the BULK IN endpoint
 	if(CONF_USB_CDCD_ACM_DATA_BULKIN_EPADDR == ep) {
-		inbuf.ready    = true;
-		inbuf.sent     = count;
+		inbuf.waiting -= count;
 		inbuf.lastCode = rc;
 	}
 
@@ -108,8 +106,7 @@ int32_t usb_start(void)
 	int32_t err = ERR_NONE;
 	
 	// Initialize the static values to their defaults
-	inbuf.ready          = true;
-	inbuf.sent           = 0;
+	inbuf.waiting        = 0;
 	outbuf.head          = 0;
 	outbuf.tail		     = 0;
 	outbuf.outInProgress = false;
@@ -161,6 +158,14 @@ bool usb_rts(void)
 	return ctrlBuf.rts;
 }
 
+void usb_haltTraffic(void) {
+    cdcdf_acm_stop_xfer();
+    inbuf.waiting        = 0;
+    outbuf.head          = 0;
+    outbuf.tail		     = 0;
+    outbuf.outInProgress = false;
+}
+
 /************************ TRANSMITTING DATA *************************************/
 int32_t usb_write(void* outData, uint32_t BUFFER_SIZE) 
 {
@@ -168,11 +173,10 @@ int32_t usb_write(void* outData, uint32_t BUFFER_SIZE)
 	
 	// This check IS needed. cdcdf_acm_write() will drop data if bus is busy and does
 	// not appear to return an error message.
-	if(inbuf.ready) {
+	if(0 == inbuf.waiting) {
 		volatile hal_atomic_t __atomic;
 		atomic_enter_critical(&__atomic);
-		inbuf.ready = false;
-		inbuf.sent  = 0;
+		inbuf.waiting  = BUFFER_SIZE;
 		atomic_leave_critical(&__atomic);
 		
 		err = cdcdf_acm_write((uint8_t*)outData, BUFFER_SIZE);
@@ -180,6 +184,10 @@ int32_t usb_write(void* outData, uint32_t BUFFER_SIZE)
 	
 	return  err;
 }
+
+bool usb_isInBusy(void) {
+    return (0 != inbuf.waiting);
+    }
 
 
 /************************ RECEIVING DATA ****************************************/

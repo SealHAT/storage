@@ -12,7 +12,7 @@
 #include "usb_start.h"
 
 #define TEST_DATA_SIZE      (10240)  /* 5 pages (2048 * 5) */
-#define NUM_TEST_BLOCKS     (2)      /* Number of blocks to write data to total. */
+#define NUM_TEST_BLOCKS     (5)      /* Number of blocks to write data to total. */
 
  /*************************************************************
  * STRINGS

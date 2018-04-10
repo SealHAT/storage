@@ -33,12 +33,14 @@ uint8_t small_nand_test_driver()
 {
     volatile uint8_t  status;                   /* Value of the flash status register. */
              int      retVal;                   /* Return value of functions that don't return a status. */
+             int      tempRetVal;
     static   uint8_t  pageCount;                /* Loop control variable for writes and reads. Iterate over pages. */
     static   uint32_t blockAddress;             /* The micro stores values little endian but is configured to send SPI data big endian */
              uint32_t nextBlockOffset;          /* Offset to get to the next block in the main memory array. */
              uint32_t colAddress;               /* Column address for in-page offset */
     static   uint32_t address;                  /* The OR'd bits of block and page addresses to create a single 3 byte address. */
              uint8_t  page[PAGE_SIZE_EXTRA];    /* Holds a page worth (PAGE_SIZE bytes) of data. */
+             uint8_t  dataByteLast;
              int      i;                        /* Loop control variable for printing. */
              int      blockCount;               /* Loop control variable for looping through blocks. */ 
     
@@ -73,7 +75,7 @@ uint8_t small_nand_test_driver()
     for(blockCount = 0; blockCount < NUM_TEST_BLOCKS; blockCount++) {
         do {
             retVal = usb_write((uint8_t *) START_WRITE, sizeof(START_WRITE));
-        } while(retVal < 0);
+        } while(retVal != USB_OK );
     
         /* Iterate through a page worth of data to fill up all 64 pages
             * of the block. */
@@ -98,10 +100,12 @@ uint8_t small_nand_test_driver()
     /********
      * READ *
      ********/
+    
+    
     for(blockCount = 0; blockCount < NUM_TEST_BLOCKS; blockCount++) {
         do {
             retVal = usb_write((uint8_t *) DONE_WRITE, sizeof(DONE_WRITE));
-        } while(retVal < 0);
+        } while(retVal != USB_OK);
     
         /* Reinitialize variables for reading. */
         blockAddress = 0x000040;
@@ -110,7 +114,7 @@ uint8_t small_nand_test_driver()
          * be checked on the PC end. */
         do {
             retVal = usb_write((uint8_t *) START_READ, sizeof(START_READ));
-        } while(retVal < 0);
+        } while(retVal != USB_OK);
 
         /* Iterate through every page in the block and print the data to the PC. */
         for(pageCount = 0; pageCount < PAGES_PER_BLOCK; pageCount++) {            
@@ -120,29 +124,41 @@ uint8_t small_nand_test_driver()
             /* Read test data. */
             status = flash_read(address, colAddress, page, PAGE_SIZE_LESS);
         
-            //sprintf(statBuffer, "status: %d    address: %lu    pageCount: %d\n", status, address, pageCount);
-        
-            do {
-                retVal = usb_write(statBuffer, sizeof(statBuffer));
-            } while(retVal != USB_OK);
+
         
             /* Wait until device is done reading. */
             flash_wait_until_not_busy();
             
+            /* Something went wrong if this is true. */
+            //if(page[i] != TEST_DATA[i]) {
+            //    sprintf(statBuffer, "EXPECTED: %d    ACTUAL: ", TEST_DATA[i]);
+                            
+            //    do {
+            //        retVal = usb_write(statBuffer, sizeof(statBuffer));
+            //    } while(retVal != USB_OK);
+            //}
+            
+            dataByteLast = page[0];
             for(i = 0; i < PAGE_SIZE_LESS; i++) {
                 snprintf(charBuffer, 5,"%3d\n", page[i]);
                 
-                /* Print page data. */
-                //sprintf(statBuffer, "status: %d    address: %lu    pageCount: %d    i: %d    ", status, address, pageCount, i);
-            
-                //do {
-                //    retVal = usb_write(statBuffer, sizeof(statBuffer));
-                //} while(retVal != USB_OK);
-            
                 do {    
                     retVal = usb_write(charBuffer, sizeof(charBuffer));
-                } while(retVal < 0);//!= USB_OK);
-            }                
+                    
+                    if(retVal != USB_OK) {
+                        sprintf(statBuffer, "ERROR: %d   LAST DATA: %d   CURRENT DATA:", retVal, dataByteLast);
+                        
+                        do {
+                            tempRetVal = usb_write(statBuffer, sizeof(statBuffer));
+                        } while(tempRetVal != USB_OK);
+                        
+                        while(usb_isInBusy() == true) {/* WAIT */}
+                    }
+                } while(retVal != USB_OK);
+                
+                dataByteLast = page[i];
+            }
+           
         } /* End pages per block loop. */
         
         blockAddress += nextBlockOffset;
@@ -152,7 +168,7 @@ uint8_t small_nand_test_driver()
     /* Print done message. */
     do {
         retVal = usb_write((uint8_t *) DONE_READ, sizeof(DONE_READ));
-    } while(retVal < 0);
+    } while(retVal != USB_OK);
   
   return 0;
 }
