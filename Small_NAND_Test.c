@@ -124,27 +124,26 @@ uint8_t small_nand_test_driver()
             /* Read test data. */
             status = flash_read(address, colAddress, page, PAGE_SIZE_LESS);
         
-
-        
             /* Wait until device is done reading. */
             flash_wait_until_not_busy();
             
-            /* Something went wrong if this is true. */
-            //if(page[i] != TEST_DATA[i]) {
-            //    sprintf(statBuffer, "EXPECTED: %d    ACTUAL: ", TEST_DATA[i]);
-                            
-            //    do {
-            //        retVal = usb_write(statBuffer, sizeof(statBuffer));
-            //    } while(retVal != USB_OK);
-            //}
-            
+            /* Initialize the data byte last variable for debugging purposes. */
             dataByteLast = page[0];
+            
+            /* Loop through each item in a page to print it one byte at a time separated by a newline.  */
             for(i = 0; i < PAGE_SIZE_LESS; i++) {
+                
+                /* Wait for USB to not be busy. This prevents charBuffer from being overwritten. */
+                while(usb_isInBusy() == true) {/* WAIT */}
+                    
+                /* Place new data in the buffer. */
                 snprintf(charBuffer, 5,"%3d\n", page[i]);
                 
+                /* Try to write the data. If an error occurs, the error value will be printed as well. */
                 do {    
                     retVal = usb_write(charBuffer, sizeof(charBuffer));
                     
+                    /* If there was an error, print the error value. */
                     if(retVal != USB_OK) {
                         sprintf(statBuffer, "ERROR: %d   LAST DATA: %d   CURRENT DATA:", retVal, dataByteLast);
                         
@@ -152,15 +151,18 @@ uint8_t small_nand_test_driver()
                             tempRetVal = usb_write(statBuffer, sizeof(statBuffer));
                         } while(tempRetVal != USB_OK);
                         
+                        /* Wait until USB is not busy since the string that was just sent is large. */
                         while(usb_isInBusy() == true) {/* WAIT */}
                     }
                 } while(retVal != USB_OK);
                 
+                /* Store the previous iteration value for debugging. */
                 dataByteLast = page[i];
             }
            
         } /* End pages per block loop. */
         
+        /* Go to next block's address. */
         blockAddress += nextBlockOffset;
         
     } /* End blocks per run loop. */  
