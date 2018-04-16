@@ -6,8 +6,16 @@
  */ 
 
 /*
- *  ALL DATA AND ADDRESSES ARE ASSUMED TO BE BIG ENDIAN WHEN THEY ARRIVE
- *  WITHIN A FUNCTION. 
+ *  ALL DATA AND ADDRESSES ARE ASSUMED TO BE LITTLE ENDIAN WHEN THEY ARRIVE
+ *  WITHIN A FUNCTION. They are then swapped to big endian before being sent
+ *  to the flash device. IF THE MASTER DEVICE IS BIG ENDIAN, THE FOLLOWING
+ *  FUNCTIONS MUST BE UPDATED:
+ *      execute_program()       - address bytes must be swapped before SPI transfer
+ *      page_read()             - address bytes must be swapped before SPI transfer
+ *      flash_read_superblock() - bitshift ops addresses must be swapped
+ *      init_cache_superblock() - bitshift ops addresses must be swapped
+ *      flash_block_erase()     - address bytes must be swapped before SPI transfer
+ *      build_bad_block_table() - remove func call to LitToBigEndian
  */
 
 #ifndef NAND_FLASH_H_
@@ -202,20 +210,18 @@ uint8_t flash_read_page(uint8_t blockPageAddress[], uint8_t columnAddress[], uin
  * This function calls the flash_read_page function to read a 
  * page of data. This occurs only after the block address has
  * been adjusted to account for the bad blocks that were 
- * skipped. This occurs by calling the calculate_block_offset
- * function before the flash_read_page function is called. 
- *
- * Parameters: 
- *      blockAddress    :   Given block address before offset
- *      columnAddress   :   Where to start reading a page
- *      dataBuffer[]    :   Holds the data that is read
- *      dataSize        :   Size of data to read
- *
- * Returns:
- *      status          :   Current status of the device
+ * skipped.
  *************************************************************/
 uint8_t flash_read(uint32_t blockAddress, uint32_t columnAddress, uint8_t dataBuffer[], int dataSize);
 
+/*************************************************************
+ * FUNCTION: flash_write()
+ * -----------------------------------------------------------
+ * This function calls the flash_write_page function to write
+ * a page of data. This occurs only after the block address
+ * has  been adjusted to account for the bad blocks that were
+ * skipped.
+ *************************************************************/
 uint8_t flash_write(uint32_t blockAddress, uint32_t columnAddress, uint8_t dataBuffer[], int dataSize);
 
 /*************************************************************
