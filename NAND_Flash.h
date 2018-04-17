@@ -25,17 +25,17 @@
 #include "HelperFunctions.h"
 
 /* DEFINES */
-#define PAGE_SIZE_EXTRA     (2176)                 /* Maximum NAND Flash page size (*including* extra space) */
-#define PAGE_SIZE_LESS      (2048)                 /* Maximum NAND Flash page size (*excluding* extra space) */
-#define MAX_BAD_BLOCKS      (40)                   /* Guaranteed maximum number of bad blocks for this device */
-#define NAND_BUFFER_SIZE    (2180)                 /* Max SPI buffer size (page size plus room for commands) */
-#define BAD_BLK_ADDR        (0x800)                /* Address of the bad block mark on the first page of each block */
-#define ECC_START_ADDR      (0x840)                /* Address of start of error correction flags (last 8 bytes) */
-#define MAX_PAGE_SIZE       (2176)                 /* Maximum bytes per page. Includes spare area */
-#define NUM_BLOCKS          (2048)                 /* Maximum number of blocks within the device */
-#define PAGES_PER_BLOCK     (64)                   /* Number of pages within each block of a device */
+#define PAGE_SIZE_EXTRA     (2176)              /* Maximum NAND Flash page size (*including* extra space) */
+#define PAGE_SIZE_LESS      (2048)              /* Maximum NAND Flash page size (*excluding* extra space) */
+#define MAX_BAD_BLOCKS      (40)                /* Guaranteed maximum number of bad blocks for this device */
+#define NAND_BUFFER_SIZE    (2180)              /* Max SPI buffer size (page size plus room for commands) */
+#define BAD_BLK_ADDR        (0x800)             /* Address of the bad block mark on the first page of each block */
+#define ECC_START_ADDR      (0x840)             /* Address of start of error correction flags (last 8 bytes) */
+#define MAX_PAGE_SIZE       (2176)              /* Maximum bytes per page. Includes spare area */
+#define NUM_BLOCKS          (2048)              /* Maximum number of blocks within the device */
+#define PAGES_PER_BLOCK     (64)                /* Number of pages within each block of a device */
 
-#define SIGNATURE_SIZE      (8)                    /* The signature in the superblock is 8 bytes long */
+#define SIGNATURE_SIZE      (8)                 /* The signature in the superblock is 8 bytes long */
 extern const char SIGNATURE[SIGNATURE_SIZE];
 
 typedef struct 
@@ -45,6 +45,13 @@ typedef struct
     uint32_t  badBlockTable[MAX_BAD_BLOCKS];    /* Contains an array of bad block addresses that should not be written to. */
     uint8_t   badBlockIndex;                    /* Keeps track of next bad block to look out for. */
 } SUPERBLOCK_t;
+
+typedef struct
+{
+    uint32_t currentAddress;                    /* Address currently being written or read to/from. Updated after operation. */
+    uint32_t nextAvailableAddress;              /* Address that should be used next. Updated before operation. */
+    uint8_t  currentChipInUse;                  /* Which chip is currently in use. [0, numChips-1] */
+} FLASH_ADDRESS_DESCRIPTOR;
 
 /* CONSTANT DECLARATIONS */
 extern const uint8_t RESET[1];                  /* Command to reset the memory device */
