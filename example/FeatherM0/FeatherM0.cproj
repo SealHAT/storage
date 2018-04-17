@@ -474,6 +474,14 @@
     </ToolchainSettings>
   </PropertyGroup>
   <ItemGroup>
+    <Compile Include="..\..\flash_io.c">
+      <SubType>compile</SubType>
+      <Link>flash_io.c</Link>
+    </Compile>
+    <Compile Include="..\..\flash_io.h">
+      <SubType>compile</SubType>
+      <Link>flash_io.h</Link>
+    </Compile>
     <Compile Include="..\..\HelperFunctions.c">
       <SubType>compile</SubType>
       <Link>HelperFunctions.c</Link>
