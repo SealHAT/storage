@@ -49,8 +49,8 @@ typedef struct
 typedef struct
 {
     uint32_t currentAddress;                    /* Address currently being written or read to/from. Updated after operation. */
-    uint32_t nextAvailableAddress;              /* Address that should be used next. Updated before operation. */
-    uint8_t  currentChipInUse;                  /* Which chip is currently in use. [0, numChips-1] */
+    uint32_t nextAddress;                       /* Address that should be used next. Updated before operation. */
+    uint8_t  currentChipInUse;                  /* Which chip is currently in use. [0, numChips-1]. Will be initialized to 0. */
 } FLASH_ADDRESS_DESCRIPTOR;
 
 /* CONSTANT DECLARATIONS */
@@ -347,5 +347,24 @@ SUPERBLOCK_t *flash_get_superblock();
  *      returnBlockAddress      :   Address after the offset
  *************************************************************/
 uint32_t calculate_block_offset(uint32_t startingBlockAddress);
+
+uint32_t update_next_address();
+uint32_t update_current_address();
+
+/*************************************************************
+ * FUNCTION: get_current_address()
+ * -----------------------------------------------------------
+ * This function returns the value currently stored in the 
+ * address descriptor's current address value.
+ *************************************************************/
+uint32_t get_current_address();
+
+/*************************************************************
+ * FUNCTION: get_next_address()
+ * -----------------------------------------------------------
+ * This function returns the value currently stored in the 
+ * address descriptor's current address value.
+ *************************************************************/
+uint32_t get_next_address();
 
 #endif /* NAND_FLASH_H_ */

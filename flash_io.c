@@ -23,7 +23,14 @@
  * Returns:
  *      size    :   Number of bytes actually read. 
  *************************************************************/
-ssize_t flash_io_read(FLASH_DESCRIPTOR fd, void *buf, size_t count);
+ssize_t flash_io_read(FLASH_DESCRIPTOR fd, void *buf, size_t count) {
+    ssize_t amountRead = 0;
+    /* Read data from the ping pong buffer into the user's given buffer. */
+    /* If the user asks for more than a full page of data, only a full page
+     * will be returned based on the size of PAGE_SIZE_EXTRA. */
+
+    return (amountRead);
+}
 
 /*************************************************************
  * FUNCTION: flash_io_write()
@@ -43,7 +50,17 @@ ssize_t flash_io_read(FLASH_DESCRIPTOR fd, void *buf, size_t count);
  * Returns:
  *      size    :   Number of bytes actually written. 
  *************************************************************/
-ssize_t flash_io_write(FLASH_DESCRIPTOR fd, void *buf, size_t count);
+ssize_t flash_io_write(FLASH_DESCRIPTOR fd, void *buf, size_t count) {
+    ssize_t amountWritten = 0;
+    
+    /* Write the full size of data into the ping pong buffer. If free space in 
+     * ping pong buffer minus the count of data to write is less than or equal
+     * to zero, then the buffer must be flushed and switched. */ 
+    /* Loop until all data is written to the buffer. */ 
+    /* Address will need to be updated after each write operation. */
+
+    return (amountWritten);
+}
 
 /*************************************************************
  * FUNCTION: flash_io_is_busy()
