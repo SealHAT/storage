@@ -339,16 +339,23 @@ SUPERBLOCK_t *flash_get_superblock();
  * be for a given block address based on the bad block table.
  * Bad blocks in the system will be skipped, and thus an 
  * offset must occur.
- *
- * Parameters: 
- *      startingBlockAddress    :   Given address
- *
- * Returns:
- *      returnBlockAddress      :   Address after the offset
  *************************************************************/
 uint32_t calculate_block_offset(uint32_t startingBlockAddress);
 
+/*************************************************************
+ * FUNCTION: update_next_address()
+ * -----------------------------------------------------------
+ * This function goes to the next address that should be 
+ * written to or read from.
+ *************************************************************/
 uint32_t update_next_address();
+
+/*************************************************************
+ * FUNCTION: update_current_address()
+ * -----------------------------------------------------------
+ * This function goes to the next address that should be
+ * written to or read from.
+ *************************************************************/
 uint32_t update_current_address();
 
 /*************************************************************

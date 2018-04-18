@@ -1276,7 +1276,7 @@ uint32_t calculate_block_offset(uint32_t startingBlockAddress)
  *************************************************************/
 uint32_t update_next_address() {
 	/* Check if block out of main array. */
-    if(addressInfo.nextAddress >= NUM_BLOCKS) {
+    if(calculate_block_offset(addressInfo.currentAddress) >= NUM_BLOCKS) {
         /* ERROR - can't read out of array bounds. */ 
     } else {
         addressInfo.nextAddress++;
@@ -1302,7 +1302,7 @@ uint32_t update_next_address() {
  *************************************************************/
 uint32_t update_current_address() {
     /* Check if block out of main array. */
-    if(addressInfo.currentAddress >= NUM_BLOCKS) {
+    if(calculate_block_offset(addressInfo.currentAddress) >= NUM_BLOCKS) {
         /* ERROR - can't read out of array bounds. */
         } else {
         addressInfo.currentAddress++;

@@ -73,4 +73,6 @@ ssize_t flash_io_write(FLASH_DESCRIPTOR fd, void *buf, size_t count) {
  * Returns:
  *      isBusy    :   Returns TRUE if flash is busy.
  *************************************************************/
-bool flash_io_is_busy();
+bool flash_io_is_busy() {
+    return (flash_is_busy());
+}
