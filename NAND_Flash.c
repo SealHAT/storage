@@ -1304,7 +1304,7 @@ uint32_t update_current_address() {
     /* Check if block out of main array. */
     if(calculate_block_offset(addressInfo.currentAddress) >= NUM_BLOCKS) {
         /* ERROR - can't read out of array bounds. */
-        } else {
+    } else {
         addressInfo.currentAddress++;
     }
 

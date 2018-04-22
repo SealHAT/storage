@@ -7,6 +7,24 @@
 
 #include "flash_io.h"
 
+/* GLOBALS */
+FLASH_ADDRESS_DESCRIPTOR flash_address;
+
+/*************************************************************
+ * FUNCTION: flash_io_init()
+ * -----------------------------------------------------------
+ * This function
+ *
+ * Parameters: none
+ *
+ * Returns: void
+ *************************************************************/
+void flash_io_init(FLASH_DESCRIPTOR *fd, int page_size)
+{
+    fd->active_buffer = BUF_0;
+    fd->PAGE_SIZE = page_size;
+}
+
 /*************************************************************
  * FUNCTION: flash_io_read()
  * -----------------------------------------------------------
@@ -28,6 +46,13 @@ ssize_t flash_io_read(FLASH_DESCRIPTOR fd, void *buf, size_t count) {
     /* Read data from the ping pong buffer into the user's given buffer. */
     /* If the user asks for more than a full page of data, only a full page
      * will be returned based on the size of PAGE_SIZE_EXTRA. */
+    
+    while((amountRead < count) && ( /* No error */))
+    {
+        
+        
+        /* Update address. */
+    }
 
     return (amountRead);
 }
