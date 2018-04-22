@@ -81,9 +81,9 @@ void flash_init()
     /* Read superblock data. If superblock does not exist on device, create one. */
     flash_read_superblock();
 	
-	/* Initialize the address descriptor. */
-	addressInfo.currentAddress   = 0x00;
-	addressInfo.nextAddress      = 0x00;
+	/* Initialize the address descriptor. Initialize block address to block 1 (after the superblock). */
+	addressInfo.currentAddress   = 0x40;
+	addressInfo.nextAddress      = 0x40;
 	addressInfo.currentChipInUse = 0x00;
 }
 

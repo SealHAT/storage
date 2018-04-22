@@ -21,7 +21,11 @@ FLASH_ADDRESS_DESCRIPTOR flash_address;
  *************************************************************/
 void flash_io_init(FLASH_DESCRIPTOR *fd, int page_size)
 {
+    /* Initialize first ping-pong buffer to buffer 0 and it's index to 0. */
     fd->active_buffer = BUF_0;
+    fd->buffer_index  = 0;
+    
+    /* Set the page size for this flash. */
     fd->PAGE_SIZE = page_size;
 }
 
@@ -41,18 +45,64 @@ void flash_io_init(FLASH_DESCRIPTOR *fd, int page_size)
  * Returns:
  *      size    :   Number of bytes actually read. 
  *************************************************************/
-ssize_t flash_io_read(FLASH_DESCRIPTOR fd, void *buf, size_t count) {
+ssize_t flash_io_read(FLASH_DESCRIPTOR fd, void *buf, size_t count)
+{
+    uint8_t status;
     ssize_t amountRead = 0;
-    /* Read data from the ping pong buffer into the user's given buffer. */
-    /* If the user asks for more than a full page of data, only a full page
-     * will be returned based on the size of PAGE_SIZE_EXTRA. */
     
-    while((amountRead < count) && ( /* No error */))
+    if(flash_io_is_busy() == false)
     {
+        /* Update next address pointer. */
+        update_next_address();
+            
+        /* Read data into the active buffer. */
+        if(fd.active_buffer == BUF_0)
+        {
+            /* Read into buffer 0. */
+            status = flash_read(flash_address.currentAddress, 0x00, fd.buf_0, PAGE_SIZE_LESS);
+            
+            /* Point the user's buffer to the data just read. */
+            buf = fd.buf_0;
+            
+            /* Set the active buffer to buffer 1. */
+            fd.active_buffer = BUF_1;
+        }
+        else
+        {
+            /* Read into buffer 1. */
+            status = flash_read(flash_address.currentAddress, 0x00, fd.buf_1, PAGE_SIZE_LESS);
+            
+            /* Point the user's buffer to the data just read. */
+            buf = fd.buf_1;
+            
+            /* Set the active buffer to buffer 0. */
+            fd.active_buffer = BUF_0;
+        }
+
+        /* Check for busy. Will block until read is complete. */
+        if(flash_io_is_busy() == true)
+        {
+            /* Wait until device is done reading. */
+            flash_wait_until_not_busy();
+        }
         
-        
-        /* Update address. */
-    }
+        /* Update current address pointer. */
+        update_current_address();
+            
+        /* Return amount. */
+        if(count <= PAGE_SIZE_LESS)
+        {
+            amountRead = count;
+        }
+        else
+        {
+            amountRead = PAGE_SIZE_LESS;
+        }
+    } /* END if(flash_io_is_busy() == false) */
+    else /* Device is busy, return error. */
+    {
+        amountRead = -1;
+    }    
 
     return (amountRead);
 }
@@ -75,14 +125,70 @@ ssize_t flash_io_read(FLASH_DESCRIPTOR fd, void *buf, size_t count) {
  * Returns:
  *      size    :   Number of bytes actually written. 
  *************************************************************/
-ssize_t flash_io_write(FLASH_DESCRIPTOR fd, void *buf, size_t count) {
-    ssize_t amountWritten = 0;
-    
+ssize_t flash_io_write(FLASH_DESCRIPTOR fd, void *buf, size_t count)
+{     
     /* Write the full size of data into the ping pong buffer. If free space in 
      * ping pong buffer minus the count of data to write is less than or equal
      * to zero, then the buffer must be flushed and switched. */ 
     /* Loop until all data is written to the buffer. */ 
     /* Address will need to be updated after each write operation. */
+    uint8_t status;
+    ssize_t amountWritten = 0;
+    bool    failed     = false;
+    
+    if(flash_io_is_busy() == false)
+    {
+        /* Update next address pointer. */
+        update_next_address();
+        
+        /* Read data into the active buffer. */
+        if(fd.active_buffer == BUF_0)
+        {
+            /* Read into buffer 0. */
+            status = flash_read(flash_address.currentAddress, 0x00, fd.buf_0, PAGE_SIZE_LESS);
+            
+            /* Point the user's buffer to the data just read. */
+            buf = fd.buf_0;
+            
+            /* Set the active buffer to buffer 1. */
+            fd.active_buffer = BUF_1;
+        }
+        else
+        {
+            /* Read into buffer 1. */
+            status = flash_read(flash_address.currentAddress, 0x00, fd.buf_1, PAGE_SIZE_LESS);
+            
+            /* Point the user's buffer to the data just read. */
+            buf = fd.buf_1;
+            
+            /* Set the active buffer to buffer 0. */
+            fd.active_buffer = BUF_0;
+        }
+
+        /* Check for busy. Will block until read is complete. */
+        if(flash_io_is_busy() == true)
+        {
+            /* Wait until device is done reading. */
+            flash_wait_until_not_busy();
+        }
+        
+        /* Update current address pointer. */
+        update_current_address();
+        
+        /* Return amount. */
+        if(count <= PAGE_SIZE_LESS)
+        {
+            amountRead = count;
+        }
+        else
+        {
+            amountRead = PAGE_SIZE_LESS;
+        }
+    } /* END if(flash_io_is_busy() == false) */
+    else /* Device is busy, return error. */
+    {
+        amountWritten = -1;
+    }
 
     return (amountWritten);
 }
