@@ -43,7 +43,7 @@ void flash_io_init(FLASH_DESCRIPTOR *fd, int page_size);
  * data will be returned through the buffer. The number of 
  * bytes actually read is returned from this function. 
  *************************************************************/
-ssize_t flash_io_read(FLASH_DESCRIPTOR fd, void *buf, size_t count);
+uint32_t flash_io_read(FLASH_DESCRIPTOR *fd, uint8_t *buf, size_t count);
 
 /*************************************************************
  * FUNCTION: flash_io_write()
@@ -52,7 +52,7 @@ ssize_t flash_io_read(FLASH_DESCRIPTOR fd, void *buf, size_t count);
  * flash device's write buffer. The number of bytes to write
  * is specified by "count".
  *************************************************************/
-ssize_t flash_io_write(FLASH_DESCRIPTOR fd, void *buf, size_t count);
+uint32_t flash_io_write(FLASH_DESCRIPTOR *fd, uint8_t *buf, size_t count);
 
 /*************************************************************
  * FUNCTION: flash_io_is_busy()

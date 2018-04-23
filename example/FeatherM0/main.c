@@ -2,6 +2,7 @@
 //#include "Small_NAND_Test.h"
 #include "flash_io.h"
 
+#define TEST_DATA_SIZE      (10240)  /* 5 pages (2048 * 5) */
 extern uint8_t TEST_DATA[TEST_DATA_SIZE];
 
 int main(void)
@@ -25,7 +26,7 @@ int main(void)
     flash_wait_until_not_busy();
     
     /* Initialize descriptor. */
-    flash_io_init(flash_descriptor, PAGE_SIZE_LESS);
+    flash_io_init(&flash_descriptor, PAGE_SIZE_LESS);
     
     /* Toggle LED on/off forever. */
     while(1) 
