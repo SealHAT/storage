@@ -13,9 +13,13 @@ FLASH_ADDRESS_DESCRIPTOR flash_address;
 /*************************************************************
  * FUNCTION: flash_io_init()
  * -----------------------------------------------------------
- * This function
+ * This function initializes the flash descriptor. This
+ * function initializes the active buffer, buffer index, and
+ * flash page size.
  *
- * Parameters: none
+ * Parameters:
+ *      fd          :   Pointer to flash descriptor. 
+ *      page_size   :   Page size of flash device.
  *
  * Returns: void
  *************************************************************/
@@ -207,9 +211,9 @@ ssize_t flash_io_write(FLASH_DESCRIPTOR fd, void *buf, size_t count)
                 update_current_address();
             }            
         
-        }while((amountWritten < count) && (failed == false))
+        } while((amountWritten < count) && (failed == false))
         
-        /* Return amount. */
+        /* Return amount of data actually written. */
         if(failed == true)
         {
             if(amountWritten > PAGE_SIZE_LESS) {
@@ -241,4 +245,90 @@ ssize_t flash_io_write(FLASH_DESCRIPTOR fd, void *buf, size_t count)
  *************************************************************/
 bool flash_io_is_busy() {
     return (flash_is_busy());
+}
+
+/*************************************************************
+ * FUNCTION: flash_io_flush()
+ * -----------------------------------------------------------
+ * This function 
+ *
+ * Parameters:
+ *
+ * Returns: void
+ *************************************************************/
+void flash_io_flush(FLASH_DESCRIPTOR *fd)
+{
+    uint8_t status;
+    bool    failed = false;
+    /* Update next address pointer. */
+    update_next_address();
+    
+    /* Write data from the active buffer. */
+    if(fd.active_buffer == BUF_0)
+    {
+            /* Switch active buffer and reinitialize buffer index. */
+            fd.active_buffer = BUF_1;
+            fd.buffer_index  = 0;
+            
+            /* Flush data if device is not busy. */
+            if(flash_io_is_busy() == false) {
+                status = flash_write(flash_address.currentAddress, 0x00, fd.buf_0, PAGE_SIZE_LESS);
+                } else {
+                failed = true;
+            }
+            
+            if((status&PROG_FAIL) != 0)
+            {
+                failed = true;
+            }
+    }
+    else /* (fd.active_buffer == BUF_1) */
+    {
+        while((amountWritten < count) && (fd.buffer_index < PAGE_SIZE_LESS))
+        {
+            fd.buf_1[fd.buffer_index] = buf[amountWritten];
+            fd.buffer_index++;
+        }
+        
+        /*  */
+        if(fd.buffer_index == PAGE_SIZE_LESS)
+        {
+            /* Switch active buffer. */
+            fd.active_buffer = BUF_0;
+            
+            /* Flush data if device is not busy. */
+            if(flash_io_is_busy() == false) {
+                status = flash_write(flash_address.currentAddress, 0x00, fd.buf_1, PAGE_SIZE_LESS);
+                } else {
+                failed = true;
+            }
+            
+            if((status&PROG_FAIL) != 0)
+            {
+                failed = true;
+            }
+        }
+    }
+    
+    /* Update current address pointer if the program operation didn't fail. */
+    if(failed == false)
+    {
+        update_current_address();
+    }
+    
+}
+
+/*************************************************************
+ * FUNCTION: flash_io_reset_addr()
+ * -----------------------------------------------------------
+ * This function 
+ *
+ * Parameters: none
+ *
+ * Returns: void
+ *************************************************************/
+void flash_io_reset_addr() //reset address descriptor back to beginning of device
+{
+    
+    
 }
