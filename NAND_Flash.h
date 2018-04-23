@@ -374,4 +374,13 @@ uint32_t get_current_address();
  *************************************************************/
 uint32_t get_next_address();
 
+/*************************************************************
+ * FUNCTION: reset_address_info()
+ * -----------------------------------------------------------
+ * This function reinitializes the address pointer back to the 
+ * beginning of the device. It points back to block one of the 
+ * device.
+ *************************************************************/
+void reset_address_info();
+
 #endif /* NAND_FLASH_H_ */

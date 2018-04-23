@@ -1340,3 +1340,23 @@ uint32_t get_current_address() {
 uint32_t get_next_address() {
 	return addressInfo.nextAddress;
 }
+
+/*************************************************************
+ * FUNCTION: reset_address_info()
+ * -----------------------------------------------------------
+ * This function reinitializes the address pointer back to the 
+ * beginning of the device. It points back to block one of the 
+ * device. Block zero is the superblock and is not addressable
+ * by the user. 
+ *
+ * Parameters: none
+ *
+ * Returns: void
+ *************************************************************/
+void reset_address_info()
+{
+    /* Initialize the address descriptor. Initialize block address to block 1 (after the superblock). */
+    addressInfo.currentAddress   = 0x40;
+    addressInfo.nextAddress      = 0x40;
+    addressInfo.currentChipInUse = 0x00;    
+}

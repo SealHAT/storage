@@ -250,9 +250,11 @@ bool flash_io_is_busy() {
 /*************************************************************
  * FUNCTION: flash_io_flush()
  * -----------------------------------------------------------
- * This function 
+ * This function flushes the write buffer. All data currently
+ * in the buffer will be written out to the flash device. 
  *
  * Parameters:
+ *      fd  :   Descriptor containing buffers. 
  *
  * Returns: void
  *************************************************************/
@@ -272,8 +274,8 @@ void flash_io_flush(FLASH_DESCRIPTOR *fd)
             
             /* Flush data if device is not busy. */
             if(flash_io_is_busy() == false) {
-                status = flash_write(flash_address.currentAddress, 0x00, fd.buf_0, PAGE_SIZE_LESS);
-                } else {
+                status = flash_write(flash_address.currentAddress, 0x00, fd.buf_0, fd->buffer_index);
+            } else {
                 failed = true;
             }
             
@@ -284,12 +286,6 @@ void flash_io_flush(FLASH_DESCRIPTOR *fd)
     }
     else /* (fd.active_buffer == BUF_1) */
     {
-        while((amountWritten < count) && (fd.buffer_index < PAGE_SIZE_LESS))
-        {
-            fd.buf_1[fd.buffer_index] = buf[amountWritten];
-            fd.buffer_index++;
-        }
-        
         /*  */
         if(fd.buffer_index == PAGE_SIZE_LESS)
         {
@@ -298,8 +294,8 @@ void flash_io_flush(FLASH_DESCRIPTOR *fd)
             
             /* Flush data if device is not busy. */
             if(flash_io_is_busy() == false) {
-                status = flash_write(flash_address.currentAddress, 0x00, fd.buf_1, PAGE_SIZE_LESS);
-                } else {
+                status = flash_write(flash_address.currentAddress, 0x00, fd.buf_1, fd->buffer_index);
+            } else {
                 failed = true;
             }
             
@@ -321,14 +317,17 @@ void flash_io_flush(FLASH_DESCRIPTOR *fd)
 /*************************************************************
  * FUNCTION: flash_io_reset_addr()
  * -----------------------------------------------------------
- * This function 
+ * This function resets the address pointer back to the 
+ * beginning of the flash device. The pointer goes back to 
+ * block one of the device, which is the first addressable 
+ * block by the user. 
  *
  * Parameters: none
  *
  * Returns: void
  *************************************************************/
-void flash_io_reset_addr() //reset address descriptor back to beginning of device
+void flash_io_reset_addr()
 {
-    
-    
+    /* Calls the NAND_Flash function to reset the address pointer. */
+    reset_address_info();
 }
