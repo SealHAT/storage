@@ -134,56 +134,91 @@ ssize_t flash_io_write(FLASH_DESCRIPTOR fd, void *buf, size_t count)
     /* Address will need to be updated after each write operation. */
     uint8_t status;
     ssize_t amountWritten = 0;
-    bool    failed     = false;
+    bool    failed        = false;
     
     if(flash_io_is_busy() == false)
     {
-        /* Update next address pointer. */
-        update_next_address();
+        /*  */
+        do
+        {
+            /* Update next address pointer. */
+            update_next_address();
         
-        /* Read data into the active buffer. */
-        if(fd.active_buffer == BUF_0)
-        {
-            /* Read into buffer 0. */
-            status = flash_read(flash_address.currentAddress, 0x00, fd.buf_0, PAGE_SIZE_LESS);
+            /* Write data from the active buffer. */
+            if(fd.active_buffer == BUF_0)
+            {
+                while((amountWritten < count) && (fd.buffer_index < PAGE_SIZE_LESS))
+                {
+                    fd.buf_0[fd.buffer_index] = buf[amountWritten];
+                    fd.buffer_index++;
+                }
             
-            /* Point the user's buffer to the data just read. */
-            buf = fd.buf_0;
+                /*  */
+                if(fd.buffer_index == PAGE_SIZE_LESS)
+                {
+                    /* Switch active buffer and reinitialize buffer index. */
+                    fd.active_buffer = BUF_1;
+                    fd.buffer_index  = 0;
+                
+                    /* Flush data if device is not busy. */
+                    if(flash_io_is_busy() == false) {
+                        status = flash_write(flash_address.currentAddress, 0x00, fd.buf_0, PAGE_SIZE_LESS);
+                    } else {
+                        failed = true;
+                    }
+                
+                    if((status&PROG_FAIL) != 0)
+                    {
+                        failed = true;
+                    }
+                }
+            }
+            else /* (fd.active_buffer == BUF_1) */
+            {
+                while((amountWritten < count) && (fd.buffer_index < PAGE_SIZE_LESS))
+                {
+                    fd.buf_1[fd.buffer_index] = buf[amountWritten];
+                    fd.buffer_index++;
+                }
+                        
+                /*  */
+                if(fd.buffer_index == PAGE_SIZE_LESS)
+                {
+                    /* Switch active buffer. */
+                    fd.active_buffer = BUF_0;
+                            
+                    /* Flush data if device is not busy. */
+                    if(flash_io_is_busy() == false) {
+                        status = flash_write(flash_address.currentAddress, 0x00, fd.buf_1, PAGE_SIZE_LESS);
+                    } else {
+                        failed = true;
+                    }                    
+                    
+                    if((status&PROG_FAIL) != 0)
+                    {
+                        failed = true;
+                    }
+                }
+            }
             
-            /* Set the active buffer to buffer 1. */
-            fd.active_buffer = BUF_1;
-        }
-        else
-        {
-            /* Read into buffer 1. */
-            status = flash_read(flash_address.currentAddress, 0x00, fd.buf_1, PAGE_SIZE_LESS);
-            
-            /* Point the user's buffer to the data just read. */
-            buf = fd.buf_1;
-            
-            /* Set the active buffer to buffer 0. */
-            fd.active_buffer = BUF_0;
-        }
-
-        /* Check for busy. Will block until read is complete. */
-        if(flash_io_is_busy() == true)
-        {
-            /* Wait until device is done reading. */
-            flash_wait_until_not_busy();
-        }
+            /* Update current address pointer if the program operation didn't fail. */
+            if(failed == false)
+            {
+                update_current_address();
+            }            
         
-        /* Update current address pointer. */
-        update_current_address();
+        }while((amountWritten < count) && (failed == false))
         
         /* Return amount. */
-        if(count <= PAGE_SIZE_LESS)
+        if(failed == true)
         {
-            amountRead = count;
+            if(amountWritten > PAGE_SIZE_LESS) {
+                amountWritten -= PAGE_SIZE_LESS;
+            } else {
+                amountWritten = 0;
+            }
         }
-        else
-        {
-            amountRead = PAGE_SIZE_LESS;
-        }
+
     } /* END if(flash_io_is_busy() == false) */
     else /* Device is busy, return error. */
     {
