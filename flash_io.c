@@ -142,8 +142,8 @@ uint32_t flash_io_write(FLASH_DESCRIPTOR *fd, uint8_t *buf, size_t count)
     
     if(flash_io_is_busy() == false)
     {
-        /*  */
-        do
+        /* Write data into the buffers until all data has been written or until the operation fails. */
+        do /* while((amountWritten < count) && (failed == false)) */
         {
             /* Update next address pointer. */
             update_next_address();
@@ -157,7 +157,7 @@ uint32_t flash_io_write(FLASH_DESCRIPTOR *fd, uint8_t *buf, size_t count)
                     fd->buffer_index++;
                 }
             
-                /*  */
+                /* If the buffer is full, write it out to the flash chip after switching which buffer is active. */
                 if(fd->buffer_index == PAGE_SIZE_LESS)
                 {
                     /* Switch active buffer and reinitialize buffer index. */
@@ -171,6 +171,7 @@ uint32_t flash_io_write(FLASH_DESCRIPTOR *fd, uint8_t *buf, size_t count)
                         failed = true;
                     }
                 
+                    /* Set failed flag if the write failed. */
                     if((status&PROG_FAIL) != 0)
                     {
                         failed = true;
@@ -185,11 +186,12 @@ uint32_t flash_io_write(FLASH_DESCRIPTOR *fd, uint8_t *buf, size_t count)
                     fd->buffer_index++;
                 }
                         
-                /*  */
+                /* If the buffer is full, write it out to the flash chip after switching which buffer is active. */
                 if(fd->buffer_index == PAGE_SIZE_LESS)
                 {
                     /* Switch active buffer. */
                     fd->active_buffer = BUF_0;
+                    fd->buffer_index  = 0;
                             
                     /* Flush data if device is not busy. */
                     if(flash_io_is_busy() == false) {
@@ -198,11 +200,12 @@ uint32_t flash_io_write(FLASH_DESCRIPTOR *fd, uint8_t *buf, size_t count)
                         failed = true;
                     }                    
                     
+                    /* Set failed flag if the write failed. */
                     if((status&PROG_FAIL) != 0)
                     {
                         failed = true;
                     }
-                }
+                } /* END if(fd->buffer_index == PAGE_SIZE_LESS) */
             }
             
             /* Update current address pointer if the program operation didn't fail. */
@@ -268,41 +271,38 @@ void flash_io_flush(FLASH_DESCRIPTOR *fd)
     /* Write data from the active buffer. */
     if(fd->active_buffer == BUF_0)
     {
-            /* Switch active buffer and reinitialize buffer index. */
-            fd->active_buffer = BUF_1;
-            fd->buffer_index  = 0;
+        /* Switch active buffer and reinitialize buffer index. */
+        fd->active_buffer = BUF_1;
+        fd->buffer_index  = 0;
             
-            /* Flush data if device is not busy. */
-            if(flash_io_is_busy() == false) {
-                status = flash_write(flash_address.currentAddress, 0x00, fd->buf_0, fd->buffer_index);
-            } else {
-                failed = true;
-            }
+        /* Flush data if device is not busy. */
+        if(flash_io_is_busy() == false) {
+            status = flash_write(flash_address.currentAddress, 0x00, fd->buf_0, fd->buffer_index);
+        } else {
+            failed = true;
+        }
             
-            if((status&PROG_FAIL) != 0)
-            {
-                failed = true;
-            }
+        if((status&PROG_FAIL) != 0)
+        {
+            failed = true;
+        }
     }
     else /* (fd.active_buffer == BUF_1) */
     {
-        /*  */
-        if(fd->buffer_index == PAGE_SIZE_LESS)
+        /* Switch active buffer. */
+        fd->active_buffer = BUF_0;
+        fd->buffer_index  = 0;
+            
+        /* Flush data if device is not busy. */
+        if(flash_io_is_busy() == false) {
+            status = flash_write(flash_address.currentAddress, 0x00, fd->buf_1, fd->buffer_index);
+        } else {
+            failed = true;
+        }
+            
+        if((status&PROG_FAIL) != 0)
         {
-            /* Switch active buffer. */
-            fd->active_buffer = BUF_0;
-            
-            /* Flush data if device is not busy. */
-            if(flash_io_is_busy() == false) {
-                status = flash_write(flash_address.currentAddress, 0x00, fd->buf_1, fd->buffer_index);
-            } else {
-                failed = true;
-            }
-            
-            if((status&PROG_FAIL) != 0)
-            {
-                failed = true;
-            }
+            failed = true;
         }
     }
     

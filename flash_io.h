@@ -70,7 +70,14 @@ bool flash_io_is_busy();
  *************************************************************/
 void flash_io_flush();
 
-
-void flash_io_reset_addr(); //reset address descriptor back to beginning of device
+/*************************************************************
+ * FUNCTION: flash_io_reset_addr()
+ * -----------------------------------------------------------
+ * This function resets the address pointer back to the 
+ * beginning of the flash device. The pointer goes back to 
+ * block one of the device, which is the first addressable 
+ * block by the user.
+ *************************************************************/
+void flash_io_reset_addr();
 
 #endif /* FLASH_IO_H_ */
