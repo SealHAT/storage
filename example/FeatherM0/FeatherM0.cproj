@@ -506,10 +506,10 @@
       <SubType>compile</SubType>
       <Link>NAND_Test.h</Link>
     </None>
-    <Compile Include="..\..\Small_NAND_Test.c">
+    <None Include="..\..\Small_NAND_Test.c">
       <SubType>compile</SubType>
       <Link>Small_NAND_Test.c</Link>
-    </Compile>
+    </None>
     <Compile Include="..\..\Small_NAND_Test.h">
       <SubType>compile</SubType>
       <Link>Small_NAND_Test.h</Link>

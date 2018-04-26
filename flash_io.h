@@ -17,14 +17,14 @@
 extern FLASH_ADDRESS_DESCRIPTOR flash_address;
 
 /* Struct containing page data buffer, page size, and a count for the number of buffer bytes to use. */
-typedef struct
+typedef struct 
 {
     uint8_t buf_0[PAGE_SIZE_EXTRA];     /* Buffer for holding a page worth of data. Buffer 0 of the ping-pong buffer. */
     uint8_t buf_1[PAGE_SIZE_EXTRA];     /* Buffer for holding a page worth of data. Buffer 1 of the ping-pong buffer. */
     int     buffer_index;               /* Current read/write index of active buffer. */
     int     PAGE_SIZE;                  /* Size of page that user will see (should not include extra space bits). */
     bool    active_buffer;              /* Keeps track of which buffer in the ping-pong buffer is currently in use. */
-} FLASH_DESCRIPTOR;
+}FLASH_DESCRIPTOR;
 
 /*************************************************************
  * FUNCTION: flash_io_init()

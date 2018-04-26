@@ -5,6 +5,7 @@
 #define TEST_DATA_SIZE      (10240)  /* 5 pages (2048 * 5) */
 extern uint8_t TEST_DATA[TEST_DATA_SIZE];
 static char charBuffer[5];
+static char statBuffer[100];
 
 char WELCOME[31]     = "About to initialize device...\n";
 char GOODBYE[10]     = "Goodbye!\n";
@@ -15,7 +16,14 @@ char DONE_READ[25]   = "Device reading complete!\n";
 char NEW_LINE        = '\n';
 
 int main(void)
-{   
+{
+    /* Variables */
+    uint8_t status;
+    uint8_t dataAr[PAGE_SIZE_EXTRA];
+    int     i;
+    int     retVal;
+    int     tempRetVal;
+    
     /* Initializes MCU, SPI device, and SPI Flash buffers. */
     atmel_start_init();
     
@@ -29,16 +37,13 @@ int main(void)
     /* Initialize the flash interface. */
     flash_init();
     
+    do {
+        retVal = usb_write((uint8_t *) WELCOME, sizeof(WELCOME));
+    } while(retVal != USB_OK );
+    
     /* Declare and initialize flash descriptor. */
-    FLASH_DESCRIPTOR flash_descriptor;
-    
-    /* Variables */
-    uint8_t status;
-    uint8_t dataAr[PAGE_SIZE_EXTRA];
-    int     i;
-    int     retVal;
-    int     tempRetVal;
-    
+    static FLASH_DESCRIPTOR flash_descriptor;
+
     /* Start by erasing the entire device (except the superblock). */
     status = flash_erase_device();
     
@@ -52,51 +57,51 @@ int main(void)
         retVal = usb_write((uint8_t *) START_WRITE, sizeof(START_WRITE));
     } while(retVal != USB_OK );
     
-    flash_io_write(flash_descriptor, TEST_DATA, PAGE_SIZE_LESS);
+    flash_io_write(&flash_descriptor, TEST_DATA, PAGE_SIZE_LESS);
     
     do {
         retVal = usb_write((uint8_t *) DONE_WRITE, sizeof(DONE_WRITE));
     } while(retVal != USB_OK);
     
-     do {
-         retVal = usb_write((uint8_t *) START_READ, sizeof(START_READ));
-     } while(retVal != USB_OK);
-     
-    flash_io_read(flash_descriptor, dataAr, PAGE_SIZE_LESS);
+    do {
+        retVal = usb_write((uint8_t *) START_READ, sizeof(START_READ));
+    } while(retVal != USB_OK);
+    
+    flash_io_read(&flash_descriptor, dataAr, PAGE_SIZE_LESS);
     
     for(i = 0; i < PAGE_SIZE_LESS; i++)
     {
-         /* Wait for USB to not be busy. This prevents charBuffer from being overwritten. */
-         while(usb_isInBusy() == true) {/* WAIT */}
-         
-         /* Place new data in the buffer. */
-         snprintf(charBuffer, 5,"%3d\n", dataAr[i]);
-         
-         /* Try to write the data. If an error occurs, the error value will be printed as well. */
-         do {
-             retVal = usb_write(charBuffer, sizeof(charBuffer));
-             
-             /* If there was an error, print the error value. */
-             if(retVal != USB_OK) {
-                 sprintf(statBuffer, "ERROR: %d   DATA: %d", retVal);
-                 
-                 do {
-                     tempRetVal = usb_write(statBuffer, sizeof(statBuffer));
-                 } while(tempRetVal != USB_OK);
-                 
-                 /* Wait until USB is not busy since the string that was just sent is large. */
-                 while(usb_isInBusy() == true) {/* WAIT */}
-             }
-         } while(retVal != USB_OK);
+        /* Wait for USB to not be busy. This prevents charBuffer from being overwritten. */
+        while(usb_isInBusy() == true) {/* WAIT */}
+        
+        /* Place new data in the buffer. */
+        snprintf(charBuffer, 5,"%3d\n", dataAr[i]);
+        
+        /* Try to write the data. If an error occurs, the error value will be printed as well. */
+        do {
+            retVal = usb_write(charBuffer, sizeof(charBuffer));
+            
+            /* If there was an error, print the error value. */
+            if(retVal != USB_OK) {
+                sprintf(statBuffer, "ERROR: %d   DATA: %d", retVal);
+                
+                do {
+                    tempRetVal = usb_write(statBuffer, sizeof(statBuffer));
+                } while(tempRetVal != USB_OK);
+                
+                /* Wait until USB is not busy since the string that was just sent is large. */
+                while(usb_isInBusy() == true) {/* WAIT */}
+            }
+        } while(retVal != USB_OK);
     }
     
-     /* Print done message. */
-     do {
-         retVal = usb_write((uint8_t *) DONE_READ, sizeof(DONE_READ));
-     } while(retVal != USB_OK);
+    /* Print done message. */
+    do {
+        retVal = usb_write((uint8_t *) DONE_READ, sizeof(DONE_READ));
+    } while(retVal != USB_OK);
     
     /* Toggle LED on/off forever. */
-    while(1) 
+    while(1)
     {
         gpio_toggle_pin_level(LED_BUILTIN);
         delay_ms(1000);

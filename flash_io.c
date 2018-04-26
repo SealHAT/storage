@@ -155,6 +155,7 @@ uint32_t flash_io_write(FLASH_DESCRIPTOR *fd, uint8_t *buf, size_t count)
                 {
                     fd->buf_0[fd->buffer_index] = buf[amountWritten];
                     fd->buffer_index++;
+                    amountWritten++;
                 }
             
                 /* If the buffer is full, write it out to the flash chip after switching which buffer is active. */
@@ -184,6 +185,7 @@ uint32_t flash_io_write(FLASH_DESCRIPTOR *fd, uint8_t *buf, size_t count)
                 {
                     fd->buf_1[fd->buffer_index] = buf[amountWritten];
                     fd->buffer_index++;
+                    amountWritten++;
                 }
                         
                 /* If the buffer is full, write it out to the flash chip after switching which buffer is active. */

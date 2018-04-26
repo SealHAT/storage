@@ -136,7 +136,7 @@ void flash_read_superblock()
     
     /* If superblock does not exist, create one. Keep copy on micro, but write 
      * back immediately to flash as well. */
-    if(!valid)
+    if(valid == false)
     {
         /* Erase the first page of the device since it was invalid. A new page will
          * be written at the bottom of this function. */
