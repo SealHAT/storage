@@ -19,7 +19,7 @@ int main(void)
 {
     /* Variables */
     uint8_t status;
-    uint8_t *dataAr;//[PAGE_SIZE_EXTRA];
+    uint8_t dataAr[PAGE_SIZE_EXTRA];
     int     i;
     int     retVal;
     int     tempRetVal;
@@ -67,7 +67,7 @@ int main(void)
         retVal = usb_write((uint8_t *) START_READ, sizeof(START_READ));
     } while(retVal != USB_OK);
     
-    flash_io_flush();
+    flash_io_flush(&flash_descriptor);
     flash_io_reset_addr();
     
     flash_io_read(&flash_descriptor, dataAr, PAGE_SIZE_LESS);

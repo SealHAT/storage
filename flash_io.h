@@ -14,8 +14,6 @@
 #define BUF_0       (0)
 #define BUF_1       (1)
 
-extern FLASH_ADDRESS_DESCRIPTOR flash_address;
-
 /* Struct containing page data buffer, page size, and a count for the number of buffer bytes to use. */
 typedef struct 
 {
@@ -23,8 +21,17 @@ typedef struct
     uint8_t buf_1[PAGE_SIZE_EXTRA];     /* Buffer for holding a page worth of data. Buffer 1 of the ping-pong buffer. */
     int     buffer_index;               /* Current read/write index of active buffer. */
     int     PAGE_SIZE;                  /* Size of page that user will see (should not include extra space bits). */
-    bool    active_buffer;              /* Keeps track of which buffer in the ping-pong buffer is currently in use. */
+    int     active_buffer;              /* Keeps track of which buffer in the ping-pong buffer is currently in use. */
 }FLASH_DESCRIPTOR;
+
+typedef struct
+{
+    uint32_t currentAddress;                    /* Address currently being written or read to/from. Updated after operation. */
+    uint32_t nextAddress;                       /* Address that should be used next. Updated before operation. */
+    uint8_t  currentChipInUse;                  /* Which chip is currently in use. [0, numChips-1]. Will be initialized to 0. */
+} FLASH_ADDRESS_DESCRIPTOR;
+
+extern FLASH_ADDRESS_DESCRIPTOR flash_address;
 
 /*************************************************************
  * FUNCTION: flash_io_init()
@@ -68,7 +75,7 @@ bool flash_io_is_busy();
  * This function flushes the write buffer. All data currently
  * in the buffer will be written out to the flash device.
  *************************************************************/
-void flash_io_flush();
+void flash_io_flush(FLASH_DESCRIPTOR *fd);
 
 /*************************************************************
  * FUNCTION: flash_io_reset_addr()
@@ -79,5 +86,46 @@ void flash_io_flush();
  * block by the user.
  *************************************************************/
 void flash_io_reset_addr();
+
+/*************************************************************
+ * FUNCTION: update_next_address()
+ * -----------------------------------------------------------
+ * This function goes to the next address that should be 
+ * written to or read from.
+ *************************************************************/
+uint32_t update_next_address();
+
+/*************************************************************
+ * FUNCTION: update_current_address()
+ * -----------------------------------------------------------
+ * This function goes to the next address that should be
+ * written to or read from.
+ *************************************************************/
+uint32_t update_current_address();
+
+/*************************************************************
+ * FUNCTION: get_current_address()
+ * -----------------------------------------------------------
+ * This function returns the value currently stored in the 
+ * address descriptor's current address value.
+ *************************************************************/
+uint32_t get_current_address();
+
+/*************************************************************
+ * FUNCTION: get_next_address()
+ * -----------------------------------------------------------
+ * This function returns the value currently stored in the 
+ * address descriptor's current address value.
+ *************************************************************/
+uint32_t get_next_address();
+
+/*************************************************************
+ * FUNCTION: reset_address_info()
+ * -----------------------------------------------------------
+ * This function reinitializes the address pointer back to the 
+ * beginning of the device. It points back to block one of the 
+ * device.
+ *************************************************************/
+void reset_address_info();
 
 #endif /* FLASH_IO_H_ */

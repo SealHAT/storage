@@ -31,6 +31,9 @@ void flash_io_init(FLASH_DESCRIPTOR *fd, int page_size)
     
     /* Set the page size for this flash. */
     fd->PAGE_SIZE = page_size;
+    
+    /* Initialize the address descriptor. */
+    flash_io_reset_addr();
 }
 
 /*************************************************************
@@ -53,6 +56,7 @@ uint32_t flash_io_read(FLASH_DESCRIPTOR *fd, uint8_t *buf, size_t count)
 {
     uint8_t  status;
     uint32_t amountRead = 0;
+    int      i;
     
     if(flash_io_is_busy() == false)
     {
@@ -65,8 +69,11 @@ uint32_t flash_io_read(FLASH_DESCRIPTOR *fd, uint8_t *buf, size_t count)
             /* Read into buffer 0. */
             status = flash_read(flash_address.currentAddress, 0x00, fd->buf_0, PAGE_SIZE_LESS);
             
-            /* Point the user's buffer to the data just read. */
-            buf = fd->buf_0;
+            /* Fill the user's buffer with the data. */
+            for(i = 0; i < PAGE_SIZE_LESS; i++)
+            {
+                buf[i] = fd->buf_0[i];
+            }
             
             /* Set the active buffer to buffer 1. */
             fd->active_buffer = BUF_1;
@@ -76,8 +83,11 @@ uint32_t flash_io_read(FLASH_DESCRIPTOR *fd, uint8_t *buf, size_t count)
             /* Read into buffer 1. */
             status = flash_read(flash_address.currentAddress, 0x00, fd->buf_1, PAGE_SIZE_LESS);
             
-            /* Point the user's buffer to the data just read. */
-            buf = fd->buf_1;
+            /* Fill the user's buffer with the data. */
+            for(i = 0; i < PAGE_SIZE_LESS; i++)
+            {
+                buf[i] = fd->buf_1[i];
+            }                
             
             /* Set the active buffer to buffer 0. */
             fd->active_buffer = BUF_0;
@@ -267,53 +277,56 @@ void flash_io_flush(FLASH_DESCRIPTOR *fd)
 {
     uint8_t status;
     bool    failed = false;
-    /* Update next address pointer. */
-    update_next_address();
     
-    /* Write data from the active buffer. */
-    if(fd->active_buffer == BUF_0)
+    if(fd->buffer_index != 0)
     {
-        /* Switch active buffer and reinitialize buffer index. */
-        fd->active_buffer = BUF_1;
-        fd->buffer_index  = 0;
-            
-        /* Flush data if device is not busy. */
-        if(flash_io_is_busy() == false) {
-            status = flash_write(flash_address.currentAddress, 0x00, fd->buf_0, fd->buffer_index);
-        } else {
-            failed = true;
-        }
-            
-        if((status&PROG_FAIL) != 0)
+        /* Update next address pointer. */
+        update_next_address();
+    
+        /* Write data from the active buffer. */
+        if(fd->active_buffer == BUF_0)
         {
-            failed = true;
-        }
-    }
-    else /* (fd.active_buffer == BUF_1) */
-    {
-        /* Switch active buffer. */
-        fd->active_buffer = BUF_0;
-        fd->buffer_index  = 0;
+            /* Switch active buffer and reinitialize buffer index. */
+            fd->active_buffer = BUF_1;
+            fd->buffer_index  = 0;
             
-        /* Flush data if device is not busy. */
-        if(flash_io_is_busy() == false) {
-            status = flash_write(flash_address.currentAddress, 0x00, fd->buf_1, fd->buffer_index);
-        } else {
-            failed = true;
-        }
+            /* Flush data if device is not busy. */
+            if(flash_io_is_busy() == false) {
+                status = flash_write(flash_address.currentAddress, 0x00, fd->buf_0, fd->buffer_index);
+            } else {
+                failed = true;
+            }
             
-        if((status&PROG_FAIL) != 0)
+            if((status&PROG_FAIL) != 0)
+            {
+                failed = true;
+            }
+        }
+        else /* (fd.active_buffer == BUF_1) */
         {
-            failed = true;
+            /* Switch active buffer. */
+            fd->active_buffer = BUF_0;
+            fd->buffer_index  = 0;
+            
+            /* Flush data if device is not busy. */
+            if(flash_io_is_busy() == false) {
+                status = flash_write(flash_address.currentAddress, 0x00, fd->buf_1, fd->buffer_index);
+            } else {
+                failed = true;
+            }
+            
+            if((status&PROG_FAIL) != 0)
+            {
+                failed = true;
+            }
         }
-    }
     
-    /* Update current address pointer if the program operation didn't fail. */
-    if(failed == false)
-    {
-        update_current_address();
-    }
-    
+        /* Update current address pointer if the program operation didn't fail. */
+        if(failed == false)
+        {
+            update_current_address();
+        }
+    }    
 }
 
 /*************************************************************
@@ -332,4 +345,106 @@ void flash_io_reset_addr()
 {
     /* Calls the NAND_Flash function to reset the address pointer. */
     reset_address_info();
+}
+
+/*************************************************************
+ * FUNCTION: update_next_address()
+ * -----------------------------------------------------------
+ * This function goes to the next address that should be 
+ * written to or read from. If the block currently being
+ * updated is at or past the final allowed value based on 
+ * NUM_BLOCKS, then an error message is thrown.  
+ *
+ * TODO: Instead of error message, switch to new flash chip.
+ *
+ * Parameters: none
+ *
+ * Returns:
+ *      address	: Updated address.
+ *************************************************************/
+uint32_t update_next_address() {
+	/* Check if block out of main array. */
+    if(calculate_block_offset(flash_address.currentAddress) >= NUM_BLOCKS) {
+        /* ERROR - can't read out of array bounds. */ 
+    } else {
+        flash_address.nextAddress++;
+    }
+
+    return (flash_address.nextAddress);
+}
+
+/*************************************************************
+ * FUNCTION: update_current_address()
+ * -----------------------------------------------------------
+ * This function goes to the next address that should be
+ * written to or read from. If the block currently being
+ * updated is at or past the final allowed value based on
+ * NUM_BLOCKS, then an error message is thrown. 
+ * 
+ * TODO: Instead of error message, switch to new flash chip.
+ *
+ * Parameters: none
+ *
+ * Returns:
+ *      address	: Updated address.
+ *************************************************************/
+uint32_t update_current_address() {
+    /* Check if block out of main array. */
+    if(calculate_block_offset(flash_address.currentAddress) >= NUM_BLOCKS) {
+        /* ERROR - can't read out of array bounds. */
+    } else {
+        flash_address.currentAddress++;
+    }
+
+    return (flash_address.currentAddress);
+}
+
+/*************************************************************
+ * FUNCTION: get_current_address()
+ * -----------------------------------------------------------
+ * This function returns the value currently stored in the 
+ * address descriptor's current address value. 
+ *
+ * Parameters: none
+ *
+ * Returns:
+ *      addressInfo.currentAddress : Current address value. 
+ *************************************************************/
+uint32_t get_current_address() {
+	return flash_address.currentAddress;
+}
+
+/*************************************************************
+ * FUNCTION: get_next_address()
+ * -----------------------------------------------------------
+ * This function returns the value currently stored in the 
+ * address descriptor's current address value. 
+ *
+ * Parameters: none
+ *
+ * Returns:
+ *      addressInfo.currentAddress : Current address value. 
+ *************************************************************/
+uint32_t get_next_address() {
+	return flash_address.nextAddress;
+}
+
+/*************************************************************
+ * FUNCTION: reset_address_info()
+ * -----------------------------------------------------------
+ * This function reinitializes the address pointer back to the 
+ * beginning of the device. It points back to block one of the 
+ * device. Block zero is the superblock and is not addressable
+ * by the user. 
+ *
+ * Parameters: none
+ *
+ * Returns: void
+ *************************************************************/
+void reset_address_info()
+{
+    /* Initialize the address descriptor. Initialize block address to block 1 (after the superblock). */
+    flash_address.currentAddress   = 0x40;
+    flash_address.nextAddress      = 0x40;
+    flash_address.currentChipInUse = 0x00;    
 }

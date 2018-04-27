@@ -46,13 +46,6 @@ typedef struct
     uint8_t   badBlockIndex;                    /* Keeps track of next bad block to look out for. */
 } SUPERBLOCK_t;
 
-typedef struct
-{
-    uint32_t currentAddress;                    /* Address currently being written or read to/from. Updated after operation. */
-    uint32_t nextAddress;                       /* Address that should be used next. Updated before operation. */
-    uint8_t  currentChipInUse;                  /* Which chip is currently in use. [0, numChips-1]. Will be initialized to 0. */
-} FLASH_ADDRESS_DESCRIPTOR;
-
 /* CONSTANT DECLARATIONS */
 extern const uint8_t RESET[1];                  /* Command to reset the memory device */
 extern const uint8_t GET_FEAT[2];               /* Command to get the current contents of the status register */
@@ -341,46 +334,5 @@ SUPERBLOCK_t *flash_get_superblock();
  * offset must occur.
  *************************************************************/
 uint32_t calculate_block_offset(uint32_t startingBlockAddress);
-
-/*************************************************************
- * FUNCTION: update_next_address()
- * -----------------------------------------------------------
- * This function goes to the next address that should be 
- * written to or read from.
- *************************************************************/
-uint32_t update_next_address();
-
-/*************************************************************
- * FUNCTION: update_current_address()
- * -----------------------------------------------------------
- * This function goes to the next address that should be
- * written to or read from.
- *************************************************************/
-uint32_t update_current_address();
-
-/*************************************************************
- * FUNCTION: get_current_address()
- * -----------------------------------------------------------
- * This function returns the value currently stored in the 
- * address descriptor's current address value.
- *************************************************************/
-uint32_t get_current_address();
-
-/*************************************************************
- * FUNCTION: get_next_address()
- * -----------------------------------------------------------
- * This function returns the value currently stored in the 
- * address descriptor's current address value.
- *************************************************************/
-uint32_t get_next_address();
-
-/*************************************************************
- * FUNCTION: reset_address_info()
- * -----------------------------------------------------------
- * This function reinitializes the address pointer back to the 
- * beginning of the device. It points back to block one of the 
- * device.
- *************************************************************/
-void reset_address_info();
 
 #endif /* NAND_FLASH_H_ */
