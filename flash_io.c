@@ -57,6 +57,7 @@ uint32_t flash_io_read(FLASH_DESCRIPTOR *fd, uint8_t *buf, size_t count)
     uint8_t  status;
     uint32_t amountRead = 0;
     int      i;
+    uint32_t amountToRead;
     
     if(flash_io_is_busy() == false)
     {
@@ -69,10 +70,19 @@ uint32_t flash_io_read(FLASH_DESCRIPTOR *fd, uint8_t *buf, size_t count)
             /* Read into buffer 0. */
             status = flash_read(flash_address.currentAddress, 0x00, fd->buf_0, PAGE_SIZE_LESS);
             
+            /* Determine how much data to read into user's buffer. */
+            if(count >= PAGE_SIZE_LESS) {
+                amountToRead = PAGE_SIZE_LESS;
+            } else {
+                amountToRead = count;
+            }
+            
             /* Fill the user's buffer with the data. */
-            for(i = 0; i < PAGE_SIZE_LESS; i++)
+            i = 0;
+            while(i < amountToRead)
             {
                 buf[i] = fd->buf_0[i];
+                i++;
             }
             
             /* Set the active buffer to buffer 1. */
@@ -83,10 +93,19 @@ uint32_t flash_io_read(FLASH_DESCRIPTOR *fd, uint8_t *buf, size_t count)
             /* Read into buffer 1. */
             status = flash_read(flash_address.currentAddress, 0x00, fd->buf_1, PAGE_SIZE_LESS);
             
+            /* Determine how much data to read into user's buffer. */
+            if(count >= PAGE_SIZE_LESS) {
+                amountToRead = PAGE_SIZE_LESS;
+            } else {
+                amountToRead = count;
+            }
+            
             /* Fill the user's buffer with the data. */
-            for(i = 0; i < PAGE_SIZE_LESS; i++)
+            i = 0;
+            while(i < amountToRead)
             {
                 buf[i] = fd->buf_1[i];
+                i++;
             }                
             
             /* Set the active buffer to buffer 0. */
