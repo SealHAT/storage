@@ -6,8 +6,16 @@
  */ 
 
 /*
- *  ALL DATA AND ADDRESSES ARE ASSUMED TO BE BIG ENDIAN WHEN THEY ARRIVE
- *  WITHIN A FUNCTION. 
+ *  ALL DATA AND ADDRESSES ARE ASSUMED TO BE LITTLE ENDIAN WHEN THEY ARRIVE
+ *  WITHIN A FUNCTION. They are then swapped to big endian before being sent
+ *  to the flash device. IF THE MASTER DEVICE IS BIG ENDIAN, THE FOLLOWING
+ *  FUNCTIONS MUST BE UPDATED:
+ *      execute_program()       - address bytes must be swapped before SPI transfer
+ *      page_read()             - address bytes must be swapped before SPI transfer
+ *      flash_read_superblock() - bitshift ops addresses must be swapped
+ *      init_cache_superblock() - bitshift ops addresses must be swapped
+ *      flash_block_erase()     - address bytes must be swapped before SPI transfer
+ *      build_bad_block_table() - remove func call to LitToBigEndian
  */
 
 #ifndef NAND_FLASH_H_
@@ -17,17 +25,17 @@
 #include "HelperFunctions.h"
 
 /* DEFINES */
-#define PAGE_SIZE_EXTRA     (2176)                 /* Maximum NAND Flash page size (*including* extra space) */
-#define PAGE_SIZE_LESS      (2048)                 /* Maximum NAND Flash page size (*excluding* extra space) */
-#define MAX_BAD_BLOCKS      (40)                   /* Guaranteed maximum number of bad blocks for this device */
-#define NAND_BUFFER_SIZE    (2180)                 /* Max SPI buffer size (page size plus room for commands) */
-#define BAD_BLK_ADDR        (0x800)                /* Address of the bad block mark on the first page of each block */
-#define ECC_START_ADDR      (0x840)                /* Address of start of error correction flags (last 8 bytes) */
-#define MAX_PAGE_SIZE       (2176)                 /* Maximum bytes per page. Includes spare area */
-#define NUM_BLOCKS          (2048)                 /* Maximum number of blocks within the device */
-#define PAGES_PER_BLOCK     (64)                   /* Number of pages within each block of a device */
+#define PAGE_SIZE_EXTRA     (2176)              /* Maximum NAND Flash page size (*including* extra space) */
+#define PAGE_SIZE_LESS      (2048)              /* Maximum NAND Flash page size (*excluding* extra space) */
+#define MAX_BAD_BLOCKS      (40)                /* Guaranteed maximum number of bad blocks for this device */
+#define NAND_BUFFER_SIZE    (2180)              /* Max SPI buffer size (page size plus room for commands) */
+#define BAD_BLK_ADDR        (0x800)             /* Address of the bad block mark on the first page of each block */
+#define ECC_START_ADDR      (0x840)             /* Address of start of error correction flags (last 8 bytes) */
+#define MAX_PAGE_SIZE       (2176)              /* Maximum bytes per page. Includes spare area */
+#define NUM_BLOCKS          (2048)              /* Maximum number of blocks within the device */
+#define PAGES_PER_BLOCK     (64)                /* Number of pages within each block of a device */
 
-#define SIGNATURE_SIZE      (8)                    /* The signature in the superblock is 8 bytes long */
+#define SIGNATURE_SIZE      (8)                 /* The signature in the superblock is 8 bytes long */
 extern const char SIGNATURE[SIGNATURE_SIZE];
 
 typedef struct 
@@ -202,20 +210,18 @@ uint8_t flash_read_page(uint8_t blockPageAddress[], uint8_t columnAddress[], uin
  * This function calls the flash_read_page function to read a 
  * page of data. This occurs only after the block address has
  * been adjusted to account for the bad blocks that were 
- * skipped. This occurs by calling the calculate_block_offset
- * function before the flash_read_page function is called. 
- *
- * Parameters: 
- *      blockAddress    :   Given block address before offset
- *      columnAddress   :   Where to start reading a page
- *      dataBuffer[]    :   Holds the data that is read
- *      dataSize        :   Size of data to read
- *
- * Returns:
- *      status          :   Current status of the device
+ * skipped.
  *************************************************************/
 uint8_t flash_read(uint32_t blockAddress, uint32_t columnAddress, uint8_t dataBuffer[], int dataSize);
 
+/*************************************************************
+ * FUNCTION: flash_write()
+ * -----------------------------------------------------------
+ * This function calls the flash_write_page function to write
+ * a page of data. This occurs only after the block address
+ * has  been adjusted to account for the bad blocks that were
+ * skipped.
+ *************************************************************/
 uint8_t flash_write(uint32_t blockAddress, uint32_t columnAddress, uint8_t dataBuffer[], int dataSize);
 
 /*************************************************************
@@ -326,13 +332,15 @@ SUPERBLOCK_t *flash_get_superblock();
  * be for a given block address based on the bad block table.
  * Bad blocks in the system will be skipped, and thus an 
  * offset must occur.
- *
- * Parameters: 
- *      startingBlockAddress    :   Given address
- *
- * Returns:
- *      returnBlockAddress      :   Address after the offset
  *************************************************************/
 uint32_t calculate_block_offset(uint32_t startingBlockAddress);
+
+/*************************************************************
+ * FUNCTION: flash_spi_transaction()
+ * -----------------------------------------------------------
+ * This function completes and SPI transaction with the SPI
+ * descriptor currently associated with the flash chip(s).
+ *************************************************************/
+void flash_spi_transaction();
 
 #endif /* NAND_FLASH_H_ */
