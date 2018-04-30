@@ -405,14 +405,8 @@ uint8_t flash_reset()
         flash_setSPI_buffer_size(1);
         flash_MOSI[0] = RESET[0];
 
-        /* Set slave select (CS) active low to communicate. */
-        gpio_set_pin_level(GPIO_PIN(CS), false);
-
-        /* Read/write over SPI */
-        spi_m_sync_transfer(&spi_flash, &spi_flash_buff);
-
-        /* De-select device by pulling CS high. */
-        gpio_set_pin_level(GPIO_PIN(CS), true);
+        /* Complete an SPI transaction */
+        flash_spi_transaction();
 
         /* Reinitialize output buffer. */
         flash_MOSI[0] = 0;
@@ -446,14 +440,8 @@ uint8_t flash_status()
     flash_MOSI[0] = GET_FEAT[0];
     flash_MOSI[1] = GET_FEAT[1];
 
-    /* Set slave select (CS) active low to communicate. */
-    gpio_set_pin_level(GPIO_PIN(CS), false);
-
-    /* Read/write over SPI */
-    spi_m_sync_transfer(&spi_flash, &spi_flash_buff);
-
-    /* De-select device by pulling CS high. */
-    gpio_set_pin_level(GPIO_PIN(CS), true);
+    /* Complete an SPI transaction */
+    flash_spi_transaction();
 
     /* Reinitialize output buffer. */
     flash_MOSI[0] = 0;
@@ -490,14 +478,8 @@ uint8_t flash_set_WEL()
         flash_setSPI_buffer_size(1);
         flash_MOSI[0] = SET_WEL[0];	
 	
-        /* Set slave select (CS) active low to communicate. */
-        gpio_set_pin_level(GPIO_PIN(CS), false);
-    
-        /* Read/write over SPI */
-        spi_m_sync_transfer(&spi_flash, &spi_flash_buff);
-    
-        /* De-select device by pulling CS high. */
-        gpio_set_pin_level(GPIO_PIN(CS), true);
+        /* Complete an SPI transaction */
+        flash_spi_transaction();
 
         /* Reinitialize output buffer. */
         flash_MOSI[0] = SET_WEL[0];
@@ -765,14 +747,8 @@ uint8_t flash_block_erase(uint8_t blockAddress[])
             flash_MOSI[2] = blockAddress[1];
             flash_MOSI[3] = blockAddress[0];
 
-            /* Set slave select (CS) active low to communicate. */
-            gpio_set_pin_level(GPIO_PIN(CS), false);
-    
-            /* Read/write over SPI */
-            spi_m_sync_transfer(&spi_flash, &spi_flash_buff);
-    
-            /* De-select device by pulling CS high. */
-            gpio_set_pin_level(GPIO_PIN(CS), true);
+            /* Complete an SPI transaction */
+            flash_spi_transaction();
             
             /* Reinitialize output buffer and get status. */
             flash_MOSI[0] = 0;
@@ -855,14 +831,8 @@ uint8_t flash_block_lock_status()
     flash_MOSI[0] = GET_BLOCK_LOCK[0];
     flash_MOSI[1] = GET_BLOCK_LOCK[1];
 
-    /* Set slave select (CS) active low to communicate. */
-    gpio_set_pin_level(GPIO_PIN(CS), false);
-
-    /* Read/write over SPI */
-    spi_m_sync_transfer(&spi_flash, &spi_flash_buff);
-
-    /* De-select device by pulling CS high. */
-    gpio_set_pin_level(GPIO_PIN(CS), true);
+    /* Complete an SPI transaction */
+    flash_spi_transaction();
 
     /* Reinitialize output buffer. */
     flash_MOSI[0] = 0;
@@ -896,14 +866,8 @@ uint8_t flash_unlock_all_blocks()
     flash_MOSI[1] = UNLOCK_BLOCKS[1];
     flash_MOSI[2] = UNLOCK_BLOCKS[2];
 
-    /* Set slave select (CS) active low to communicate. */
-    gpio_set_pin_level(GPIO_PIN(CS), false);
-
-    /* Read/write over SPI */
-    spi_m_sync_transfer(&spi_flash, &spi_flash_buff);
-
-    /* De-select device by pulling CS high. */
-    gpio_set_pin_level(GPIO_PIN(CS), true);
+    /* Complete an SPI transaction */
+    flash_spi_transaction();
 
     /* Reinitialize output buffer. */
     flash_MOSI[0] = 0;
@@ -959,14 +923,8 @@ uint8_t program_load(uint8_t data[], int dataSize, uint8_t colAddress[])
         j++;
     }
 
-    /* Set slave select (CS) active low to communicate. */
-    gpio_set_pin_level(GPIO_PIN(CS), false);
-    
-    /* Read/write over SPI */
-    spi_m_sync_transfer(&spi_flash, &spi_flash_buff);
-    
-    /* Read/write over SPI */
-    gpio_set_pin_level(GPIO_PIN(CS), true);
+    /* Complete an SPI transaction */
+    flash_spi_transaction();
 
     /* De-select device by pulling CS high. */
     reinitialize_out_buff();
@@ -1001,14 +959,8 @@ uint8_t execute_program(uint8_t blockAddress[])
     flash_MOSI[2] = blockAddress[1];
     flash_MOSI[3] = blockAddress[0];
     
-    /* Set slave select (CS) active low to communicate. */
-    gpio_set_pin_level(GPIO_PIN(CS), false);
-        
-    /* Read/write over SPI */
-    spi_m_sync_transfer(&spi_flash, &spi_flash_buff);
-        
-    /* De-select device by pulling CS high. */
-    gpio_set_pin_level(GPIO_PIN(CS), true);
+    /* Complete an SPI transaction */
+    flash_spi_transaction();
 
     /* Reinitialize output buffer. */
     flash_MOSI[0] = 0;
@@ -1065,14 +1017,8 @@ uint8_t page_read(uint8_t blockPageAddress[])
     flash_MOSI[2] = blockPageAddress[1];
     flash_MOSI[3] = blockPageAddress[0];
     
-    /* Set slave select (CS) active low to communicate. */
-    gpio_set_pin_level(GPIO_PIN(CS),false);
-    
-    /* Read/write over SPI */
-    spi_m_sync_transfer(&spi_flash, &spi_flash_buff);
-    
-    /* De-select device by pulling CS high. */
-    gpio_set_pin_level(GPIO_PIN(CS), true);
+    /* Complete an SPI transaction */
+    flash_spi_transaction();
         
     /* Reinitialize output buffer and get status again */
     flash_MOSI[0] = 0;
@@ -1109,14 +1055,8 @@ uint8_t page_read(uint8_t blockPageAddress[])
     flash_MOSI[1] = columnAddress[0];
     flash_MOSI[2] = columnAddress[1];
     
-    /* Set slave select (CS) active low to communicate. */
-    gpio_set_pin_level(GPIO_PIN(CS),false);
-        
-    /* Read/write over SPI */
-    spi_m_sync_transfer(&spi_flash, &spi_flash_buff);
-        
-    /* De-select device by pulling CS high. */
-    gpio_set_pin_level(GPIO_PIN(CS), true);
+    /* Complete an SPI transaction */
+    flash_spi_transaction();
         
     /* Reinitialize output buffer and get status again */
     flash_MOSI[0] = 0;
@@ -1251,4 +1191,33 @@ uint32_t calculate_block_offset(uint32_t startingBlockAddress)
     }
     
     return (returnBlockAddress);
+}
+
+/*************************************************************
+ * FUNCTION: flash_spi_transaction()
+ * -----------------------------------------------------------
+ * This function completes and SPI transaction with the SPI
+ * descriptor currently associated with the flash chip(s). The
+ * process begins by pulling the chip select line low since 
+ * this signal is active low. The transaction continues by 
+ * sending whatever data is in the SPI buffer specified by 
+ * the given descriptor for whatever size is currently set
+ * within the descriptor. Once the transaction is complete, 
+ * the chip select line is once again pulled high. No error
+ * checking occurs within this function. 
+ *
+ * Parameters: none
+ *
+ * Returns: void
+ *************************************************************/
+void flash_spi_transaction()
+{
+    /* Set slave select (CS) active low to communicate. */
+    gpio_set_pin_level(GPIO_PIN(CS),false);
+    
+    /* Read/write over SPI */
+    spi_m_sync_transfer(&spi_flash, &spi_flash_buff);
+    
+    /* De-select device by pulling CS high. */
+    gpio_set_pin_level(GPIO_PIN(CS), true);
 }

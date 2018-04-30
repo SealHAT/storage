@@ -335,4 +335,12 @@ SUPERBLOCK_t *flash_get_superblock();
  *************************************************************/
 uint32_t calculate_block_offset(uint32_t startingBlockAddress);
 
+/*************************************************************
+ * FUNCTION: flash_spi_transaction()
+ * -----------------------------------------------------------
+ * This function completes and SPI transaction with the SPI
+ * descriptor currently associated with the flash chip(s).
+ *************************************************************/
+void flash_spi_transaction();
+
 #endif /* NAND_FLASH_H_ */
