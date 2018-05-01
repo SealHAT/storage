@@ -73,6 +73,13 @@ void hash_chk_example(void)
 		;
 }
 
+/**
+ * Example of using EXTERNAL_IRQ_0
+ */
+void EXTERNAL_IRQ_0_example(void)
+{
+}
+
 void wire_example(void)
 {
 	struct io_descriptor *wire_io;
@@ -85,15 +92,27 @@ void wire_example(void)
 
 /**
  * Example of using spi_flash to write "Hello World" using the IO abstraction.
+ *
+ * Since the driver is asynchronous we need to use statically allocated memory for string
+ * because driver initiates transfer and then returns before the transmission is completed.
+ *
+ * Once transfer has been completed the tx_cb function will be called.
  */
+
 static uint8_t example_spi_flash[12] = "Hello World!";
+
+static void tx_complete_cb_spi_flash(struct _dma_resource *resource)
+{
+	/* Transfer completed */
+}
 
 void spi_flash_example(void)
 {
 	struct io_descriptor *io;
-	spi_m_sync_get_io_descriptor(&spi_flash, &io);
+	spi_m_dma_get_io_descriptor(&spi_flash, &io);
 
-	spi_m_sync_enable(&spi_flash);
+	spi_m_dma_register_callback(&spi_flash, SPI_M_DMA_CB_TX_DONE, tx_complete_cb_spi_flash);
+	spi_m_dma_enable(&spi_flash);
 	io_write(io, example_spi_flash, 12);
 }
 
