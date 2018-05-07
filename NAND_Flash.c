@@ -307,8 +307,8 @@ void flash_initSPI()
 
     /* Setup SPI IO */
 	/* Set clock mode and enable SPI */
-	spi_m_sync_set_mode(&spi_flash, SPI_MODE_0);
-	spi_m_sync_enable(&spi_flash);
+	spi_m_sync_set_mode(&SPI_MEMORY, SPI_MODE_0);
+	spi_m_sync_enable(&SPI_MEMORY);
 }
 
 /*************************************************************
@@ -1216,7 +1216,7 @@ void flash_spi_transaction()
     gpio_set_pin_level(GPIO_PIN(CS),false);
     
     /* Read/write over SPI */
-    spi_m_sync_transfer(&spi_flash, &spi_flash_buff);
+    spi_m_sync_transfer(&SPI_MEMORY, &spi_flash_buff);
     
     /* De-select device by pulling CS high. */
     gpio_set_pin_level(GPIO_PIN(CS), true);
