@@ -34,6 +34,7 @@
 #define MAX_PAGE_SIZE       (2176)              /* Maximum bytes per page. Includes spare area */
 #define NUM_BLOCKS          (2048)              /* Maximum number of blocks within the device */
 #define PAGES_PER_BLOCK     (64)                /* Number of pages within each block of a device */
+#define MAX_NUM_CHIPS       (3)                 /* Update this value to match however many flash chips the system uses. */
 
 #define SIGNATURE_SIZE      (8)                 /* The signature in the superblock is 8 bytes long */
 extern const char SIGNATURE[SIGNATURE_SIZE];
@@ -67,6 +68,7 @@ extern const uint8_t WEL_MASK;                  /* Mask for checking if write en
 uint8_t  flash_MOSI[NAND_BUFFER_SIZE];          /* Master's output buffer */
 uint8_t  flash_MISO[NAND_BUFFER_SIZE];          /* Master's input buffer */
 struct   spi_xfer spi_flash_buff;               /* SPI transfer descriptor */
+uint8_t  activeFlashChip;                       /* Current active flash chip. Currently supports up to three chips, with the value 00 being all chips deselected. */
 
 /* BAD BLOCK TABLE - the device is guaranteed to have a maximum of 2% of its blocks go bad 
  * within its lifetime. For this device, that means a maximum total of 41 blocks. */

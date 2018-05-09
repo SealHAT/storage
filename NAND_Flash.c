@@ -304,6 +304,9 @@ void flash_initSPI()
     spi_flash_buff.size  = NAND_BUFFER_SIZE;
     spi_flash_buff.rxbuf = flash_MISO;
     spi_flash_buff.txbuf = flash_MOSI;
+    
+    /* Set active chip. */
+    activeFlashChip = 0;
 
     /* Setup SPI IO */
 	/* Set clock mode and enable SPI */
@@ -1212,12 +1215,56 @@ uint32_t calculate_block_offset(uint32_t startingBlockAddress)
  *************************************************************/
 void flash_spi_transaction()
 {
-    /* Set slave select (CS) active low to communicate. */
-    gpio_set_pin_level(GPIO_PIN(CS),false);
+    if(activeFlashChip == 0)
+    {
+        /* Set slave select to communicate. */
+        gpio_set_pin_level(GPIO_PIN(MEM_CS0),true);
+        gpio_set_pin_level(GPIO_PIN(MEM_CS1),false);
+    }
+    else if(activeFlashChip == 1)
+    {
+        /* Set slave select to communicate. */
+        gpio_set_pin_level(GPIO_PIN(MEM_CS0),false);
+        gpio_set_pin_level(GPIO_PIN(MEM_CS1),true);
+    }
+    else if(activeFlashChip == 2)
+    {
+        gpio_set_pin_level(GPIO_PIN(MEM_CS0),true);
+        gpio_set_pin_level(GPIO_PIN(MEM_CS1),true);
+    }
+    else
+    {
+        gpio_set_pin_level(GPIO_PIN(MEM_CS0),false);
+        gpio_set_pin_level(GPIO_PIN(MEM_CS1),false);
+    }
     
     /* Read/write over SPI */
     spi_m_sync_transfer(&SPI_MEMORY, &spi_flash_buff);
     
-    /* De-select device by pulling CS high. */
-    gpio_set_pin_level(GPIO_PIN(CS), true);
+    /* De-select device. */
+    gpio_set_pin_level(GPIO_PIN(MEM_CS0),false);
+    gpio_set_pin_level(GPIO_PIN(MEM_CS1),false);
 }
+
+/*************************************************************
+ * FUNCTION: set_active_chip()
+ * -----------------------------------------------------------
+ * This function sets the active chip to a new value. The 
+ * active value can presently accept values of 0, 1, or 2. 
+ * This value is used to determine which memory chip in the 
+ * system should be written to for all operations. 
+ *
+ * Parameters:
+ *      newActiveChip   :   New chip to select for operations.
+ *
+ * Returns: void
+ *************************************************************/
+void set_active_chip(uint8_t newActiveChip)
+{
+    /* New chip represents an index. Chip 0 is the first chip
+     * to be used. */
+    if(newActiveChip < MAX_NUM_CHIPS)
+    {
+        activeFlashChip = newActiveChip;
+    }
+} 
