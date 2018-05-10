@@ -25,6 +25,13 @@ FLASH_ADDRESS_DESCRIPTOR flash_address;
  *************************************************************/
 void flash_io_init(FLASH_DESCRIPTOR *fd, int page_size)
 {
+    /* Initialize the external flash device(s). */
+    flash_init();
+    
+    /* Erase device (except superblock). */
+    flash_erase_device();
+    flash_wait_until_not_busy();
+    
     /* Initialize first ping-pong buffer to buffer 0 and it's index to 0. */
     fd->active_buffer = BUF_0;
     fd->buffer_index  = 0;

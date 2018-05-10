@@ -34,7 +34,7 @@
 #define MAX_PAGE_SIZE       (2176)              /* Maximum bytes per page. Includes spare area */
 #define NUM_BLOCKS          (2048)              /* Maximum number of blocks within the device */
 #define PAGES_PER_BLOCK     (64)                /* Number of pages within each block of a device */
-#define MAX_NUM_CHIPS       (3)                 /* Update this value to match however many flash chips the system uses. */
+#define MAX_NUM_CHIPS       (2)                 /* Update this value to match however many flash chips the system uses. */
 
 #define SIGNATURE_SIZE      (8)                 /* The signature in the superblock is 8 bytes long */
 extern const char SIGNATURE[SIGNATURE_SIZE];
