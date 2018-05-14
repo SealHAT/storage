@@ -65,7 +65,7 @@ void flash_init()
     
     /* Minimum 1.25ms delay after reset command before any
      * other commands can be issued. Rounded up to 2ms. */
-    delay_ms(200);
+    delay_ms(2);
     
     /* Unlock all blocks (locked by default at power up). Returns status of the
      * block lock register. If the blocks are already unlocked, the unlock 
@@ -103,10 +103,9 @@ void flash_init()
  *************************************************************/
 void flash_read_superblock()
 {
-    volatile uint8_t status;            /* Value of the status register */
     uint32_t address;                   /* Block and page offset */
     uint32_t colAddress;                /* Column offset within a page */
-    uint8_t  page[PAGE_SIZE_EXTRA];     /* Holds first page of data on flash device */
+    static uint8_t  page[PAGE_SIZE_EXTRA];     /* Holds first page of data on flash device */
     bool     valid;                     /* Status of the superblock data */
     int      i;
     int      j;
@@ -119,7 +118,7 @@ void flash_read_superblock()
     //status = flash_block_erase((uint8_t *) &address);
         
     /* Read first page of memory to check for superblock. */
-    status = flash_read_page((uint8_t *) &address, (uint8_t *) &colAddress, page);
+    flash_read_page((uint8_t *) &address, (uint8_t *) &colAddress, page);
     
     /* Read the data into a struct for further processing. */
     init_cache_superblock(page, PAGE_SIZE_EXTRA);
@@ -134,7 +133,7 @@ void flash_read_superblock()
     {
         /* Erase the first page of the device since it was invalid. A new page will
          * be written at the bottom of this function. */
-        status = flash_block_erase((uint8_t *) &address);
+        flash_block_erase((uint8_t *) &address);
         
         flash_wait_until_not_busy();
         
@@ -179,7 +178,7 @@ void flash_read_superblock()
          * data back to the device immediately to ensure a copy gets preserved. */
         init_cache_superblock(page, PAGE_SIZE_EXTRA);
         flash_wait_until_not_busy();
-        status = flash_write_page(page, PAGE_SIZE_EXTRA, (uint8_t *) &colAddress, (uint8_t*) &address);
+        flash_write_page(page, PAGE_SIZE_EXTRA, (uint8_t *) &colAddress, (uint8_t*) &address);
         flash_wait_until_not_busy();
     }
 }
@@ -251,6 +250,7 @@ void init_cache_superblock(uint8_t page[], int pageSize)
     /* Superblock is global in this file. */
     int i;          /* Current page index. */
     int j;          /* Bad block table index. */
+    (void) pageSize;
     
     /* The first 8 bytes of data are the signature. */
     for(i = 0; i < SIGNATURE_SIZE; i++)
@@ -786,12 +786,10 @@ uint8_t flash_erase_device()
     uint32_t address;               /* The micro stores values little endian but is configured to send SPI data big endian */
     uint32_t nextBlock;             /* Amount to increase address by to get to next block */
     uint8_t  status;                /* Value of the status register */
-    uint8_t  tableIndex;            /* The current index of the bad block table */
         
     /* INITIALIZATIONS */
     nextBlock   = 0x40;
     address     = 0x000040;
-    tableIndex  = 0;
         
     /* Iterate through all blocks in both planes */
     for(i = 1; i < NUM_BLOCKS; i++)
@@ -911,7 +909,12 @@ uint8_t program_load(uint8_t data[], int dataSize, uint8_t colAddress[])
      * and a page of data. Put the command in the output buffer. 
      * The plus 3 for the size is to take into account the time it takes
      * to send the actual command. */
-    flash_setSPI_buffer_size(PAGE_SIZE_LESS + 3);
+    if(dataSize > PAGE_SIZE_LESS)
+    {
+        dataSize = PAGE_SIZE_LESS;
+    }
+    
+    flash_setSPI_buffer_size(dataSize + 3);
     flash_MOSI[0] = PROG_LOAD[0];
     flash_MOSI[1] = colAddress[0];
     flash_MOSI[2] = colAddress[1];
@@ -1097,9 +1100,8 @@ uint8_t build_bad_block_table()
     uint32_t address;               /* The micro stores values little endian but is configured to send SPI data big endian */
     uint8_t  badCount;              /* Total number of bad blocks found */
     uint32_t nextBlock;             /* Amount to increase address by to get to next block */
-    uint8_t  page[PAGE_SIZE_EXTRA]; /* Holds a page worth (PAGE_SIZE bytes) of data. */
+    static uint8_t  page[PAGE_SIZE_EXTRA]; /* Holds a page worth (PAGE_SIZE bytes) of data. */
     uint32_t colAddress;            /* Column address for in-page offset */
-    uint8_t  status;                /* Value of the status register */
     uint8_t  tableIndex;            /* The current index of the bad block table */
     
     /* INITIALIZATIONS */
@@ -1114,7 +1116,7 @@ uint8_t build_bad_block_table()
     {
         /* Read the first page of each block. Casts the integer value of the address to an
          * "array" for the Read function. */
-        status = flash_read_page((uint8_t *) &address, (uint8_t *) &colAddress, page);
+        flash_read_page((uint8_t *) &address, (uint8_t *) &colAddress, page);
         
         /* If the first address in the spare area of the first page of a block is not 0xFF,
          * that means it was marked as a bad block and should not be used. */
@@ -1218,27 +1220,27 @@ void flash_spi_transaction()
     if(activeFlashChip == 0)
     {
         /* Set slave select to communicate. */
-        gpio_set_pin_level(GPIO_PIN(MEM_CS0), false);
-        gpio_set_pin_level(GPIO_PIN(MEM_CS1), true);
+        gpio_set_pin_level(MEM_CS0, false);
+        gpio_set_pin_level(MEM_CS1, true);
     }
     else if(activeFlashChip == 1)
     {
         /* Set slave select to communicate. */
-        gpio_set_pin_level(GPIO_PIN(MEM_CS0), true);
-        gpio_set_pin_level(GPIO_PIN(MEM_CS1), false);
+        gpio_set_pin_level(MEM_CS0, true);
+        gpio_set_pin_level(MEM_CS1, false);
     }
     else
     {
-        gpio_set_pin_level(GPIO_PIN(MEM_CS0), true);
-        gpio_set_pin_level(GPIO_PIN(MEM_CS1), true);
+        gpio_set_pin_level(MEM_CS0, true);
+        gpio_set_pin_level(MEM_CS1, true);
     }
-    
+
     /* Read/write over SPI */
     spi_m_sync_transfer(&SPI_MEMORY, &spi_flash_buff);
     
     /* De-select device. */
-    gpio_set_pin_level(GPIO_PIN(MEM_CS0), true);
-    gpio_set_pin_level(GPIO_PIN(MEM_CS1), true);
+    gpio_set_pin_level(MEM_CS0, true);
+    gpio_set_pin_level(MEM_CS1, true);
 }
 
 /*************************************************************

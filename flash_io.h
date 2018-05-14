@@ -12,17 +12,14 @@
 #include "NAND_Flash.h"
 
 #define BUF_0       (0)     /* Buffer zero of the ping-pong buffer. */
-#define BUF_1       (1)     /* Buffer one of the ping-pong buffer. */
 
 /* Struct containing page data buffer, page size, and a count for the number of buffer bytes to use. 
  * Instantiate only a single descriptor in the main driving program. */
 typedef struct 
 {
-    uint8_t buf_0[PAGE_SIZE_EXTRA];     /* Buffer for holding a page worth of data. Buffer 0 of the ping-pong buffer. */
-    uint8_t buf_1[PAGE_SIZE_EXTRA];     /* Buffer for holding a page worth of data. Buffer 1 of the ping-pong buffer. */
+    uint8_t buf_0[PAGE_SIZE_EXTRA];     /* Buffer for holding a page worth of data. */
     int     buffer_index;               /* Current read/write index of active buffer. */
     int     PAGE_SIZE;                  /* Size of page that user will see (should not include extra space bits). */
-    int     active_buffer;              /* Keeps track of which buffer in the ping-pong buffer is currently in use. */
 }FLASH_DESCRIPTOR;
 
 /* THIS STRUCT IS FOR INTERNAL PROCESSING ONLY - DO NOT INSTANTIATE ANYWHERE ELSE. */
@@ -34,7 +31,7 @@ typedef struct
 } FLASH_ADDRESS_DESCRIPTOR;
 
 /* THIS STRUCT IS FOR INTERNAL PROCESSING ONLY - DO NOT INSTANTIATE ANYWHERE ELSE. */
-extern FLASH_ADDRESS_DESCRIPTOR flash_address;
+//extern FLASH_ADDRESS_DESCRIPTOR flash_address;
 
 /*************************************************************
  * FUNCTION: flash_io_init()

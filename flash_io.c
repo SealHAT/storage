@@ -8,7 +8,7 @@
 #include "flash_io.h"
 
 /* GLOBALS */
-FLASH_ADDRESS_DESCRIPTOR flash_address;
+static FLASH_ADDRESS_DESCRIPTOR flash_address;
 
 /*************************************************************
  * FUNCTION: flash_io_init()
@@ -32,8 +32,7 @@ void flash_io_init(FLASH_DESCRIPTOR *fd, int page_size)
     flash_erase_device();
     flash_wait_until_not_busy();
     
-    /* Initialize first ping-pong buffer to buffer 0 and it's index to 0. */
-    fd->active_buffer = BUF_0;
+    /* Initialize the buffer index to 0. */
     fd->buffer_index  = 0;
     
     /* Set the page size for this flash. */
@@ -72,53 +71,23 @@ uint32_t flash_io_read(FLASH_DESCRIPTOR *fd, uint8_t *buf, size_t count)
         update_next_address();
             
         /* Read data into the active buffer. */
-        if(fd->active_buffer == BUF_0)
-        {
-            /* Read into buffer 0. */
-            status = flash_read(flash_address.currentAddress, 0x00, fd->buf_0, PAGE_SIZE_LESS);
+        status = flash_read(flash_address.currentAddress, 0x00, buf, PAGE_SIZE_LESS);
             
-            /* Determine how much data to read into user's buffer. */
-            if(count >= PAGE_SIZE_LESS) {
-                amountToRead = PAGE_SIZE_LESS;
-            } else {
-                amountToRead = count;
-            }
-            
-            /* Fill the user's buffer with the data. */
-            i = 0;
-            while(i < amountToRead)
-            {
-                buf[i] = fd->buf_0[i];
-                i++;
-            }
-            
-            /* Set the active buffer to buffer 1. */
-            fd->active_buffer = BUF_1;
+        /* Determine how much data to read into user's buffer. */
+        if(count >= PAGE_SIZE_LESS) {
+            amountToRead = PAGE_SIZE_LESS;
+        } else {
+            amountToRead = count;
         }
-        else
-        {
-            /* Read into buffer 1. */
-            status = flash_read(flash_address.currentAddress, 0x00, fd->buf_1, PAGE_SIZE_LESS);
             
-            /* Determine how much data to read into user's buffer. */
-            if(count >= PAGE_SIZE_LESS) {
-                amountToRead = PAGE_SIZE_LESS;
-            } else {
-                amountToRead = count;
-            }
+        /* Fill the user's buffer with the data. */
+        i = 0;
+       // while(i < amountToRead)
+        //{
+        //    buf[i] = fd->buf_0[i];
+        //    i++;
+      //  }
             
-            /* Fill the user's buffer with the data. */
-            i = 0;
-            while(i < amountToRead)
-            {
-                buf[i] = fd->buf_1[i];
-                i++;
-            }                
-            
-            /* Set the active buffer to buffer 0. */
-            fd->active_buffer = BUF_0;
-        }
-
         /* Check for busy. Will block until read is complete. */
         if(flash_io_is_busy() == true)
         {
@@ -180,78 +149,45 @@ uint32_t flash_io_write(FLASH_DESCRIPTOR *fd, uint8_t *buf, size_t count)
     {
         /* Write data into the buffers until all data has been written or until the operation fails. */
         do /* while((amountWritten < count) && (failed == false)) */
-        {
-            /* Update next address pointer. */
-            update_next_address();
-        
+        {        
             /* Write data from the active buffer. */
-            if(fd->active_buffer == BUF_0)
+
+            while((amountWritten < count) && (fd->buffer_index < PAGE_SIZE_LESS))
             {
-                while((amountWritten < count) && (fd->buffer_index < PAGE_SIZE_LESS))
-                {
-                    fd->buf_0[fd->buffer_index] = buf[amountWritten];
-                    fd->buffer_index++;
-                    amountWritten++;
-                }
-            
-                /* If the buffer is full, write it out to the flash chip after switching which buffer is active. */
-                if(fd->buffer_index == PAGE_SIZE_LESS)
-                {
-                    /* Switch active buffer and reinitialize buffer index. */
-                    fd->active_buffer = BUF_1;
-                    fd->buffer_index  = 0;
-                
-                    /* Flush data if device is not busy. */
-                    if(flash_io_is_busy() == false) {
-                        status = flash_write(flash_address.currentAddress, 0x00, fd->buf_0, PAGE_SIZE_LESS);
-                    } else {
-                        failed = true;
-                    }
-                
-                    /* Set failed flag if the write failed. */
-                    if((status&PROG_FAIL) != 0)
-                    {
-                        failed = true;
-                    }
-                }
-            }
-            else /* (fd.active_buffer == BUF_1) */
-            {
-                while((amountWritten < count) && (fd->buffer_index < PAGE_SIZE_LESS))
-                {
-                    fd->buf_1[fd->buffer_index] = buf[amountWritten];
-                    fd->buffer_index++;
-                    amountWritten++;
-                }
-                        
-                /* If the buffer is full, write it out to the flash chip after switching which buffer is active. */
-                if(fd->buffer_index == PAGE_SIZE_LESS)
-                {
-                    /* Switch active buffer. */
-                    fd->active_buffer = BUF_0;
-                    fd->buffer_index  = 0;
-                            
-                    /* Flush data if device is not busy. */
-                    if(flash_io_is_busy() == false) {
-                        status = flash_write(flash_address.currentAddress, 0x00, fd->buf_1, PAGE_SIZE_LESS);
-                    } else {
-                        failed = true;
-                    }                    
-                    
-                    /* Set failed flag if the write failed. */
-                    if((status&PROG_FAIL) != 0)
-                    {
-                        failed = true;
-                    }
-                } /* END if(fd->buffer_index == PAGE_SIZE_LESS) */
+                fd->buf_0[fd->buffer_index] = buf[amountWritten];
+                fd->buffer_index++;
+                amountWritten++;
             }
             
-            /* Update current address pointer if the program operation didn't fail. */
-            if(failed == false)
+            /* If the buffer is full, write it out to the flash chip after switching which buffer is active. */
+            if(fd->buffer_index == PAGE_SIZE_LESS)
             {
-                update_current_address();
-            }            
-        
+                /* Update next address pointer. */
+                update_next_address();
+                
+                /* Switch active buffer and reinitialize buffer index. */
+                fd->buffer_index = 0;
+                
+                /* Flush data if device is not busy. */
+                if(flash_io_is_busy() == false) {
+                    status = flash_write(flash_address.currentAddress, 0x00, fd->buf_0, PAGE_SIZE_LESS);
+                } else {
+                    failed = true;
+                }
+                
+                /* Set failed flag if the write failed. */
+                if((status&PROG_FAIL) != 0)
+                {
+                    failed = true;
+                }
+                
+                /* Update current address pointer if the program operation didn't fail. */
+                if(failed == false)
+                {
+                    update_current_address();
+                } 
+            }
+            
         } while((amountWritten < count) && (failed == false));
         
         /* Return amount of data actually written. */
@@ -308,50 +244,28 @@ void flash_io_flush(FLASH_DESCRIPTOR *fd)
     {
         /* Update next address pointer. */
         update_next_address();
-    
+            
+        /* Flush data if device is not busy. */
+        if(flash_io_is_busy() == false) {
+            status = flash_write(flash_address.currentAddress, 0x00, fd->buf_0, fd->buffer_index);
+        } else {
+            failed = true;
+        }
+        
         /* Write data from the active buffer. */
-        if(fd->active_buffer == BUF_0)
+        /* Reinitialize buffer index. */
+        fd->buffer_index  = 0;
+            
+        if((status&PROG_FAIL) != 0)
         {
-            /* Switch active buffer and reinitialize buffer index. */
-            fd->active_buffer = BUF_1;
-            fd->buffer_index  = 0;
-            
-            /* Flush data if device is not busy. */
-            if(flash_io_is_busy() == false) {
-                status = flash_write(flash_address.currentAddress, 0x00, fd->buf_0, fd->buffer_index);
-            } else {
-                failed = true;
-            }
-            
-            if((status&PROG_FAIL) != 0)
-            {
-                failed = true;
-            }
+            failed = true;
         }
-        else /* (fd.active_buffer == BUF_1) */
-        {
-            /* Switch active buffer. */
-            fd->active_buffer = BUF_0;
-            fd->buffer_index  = 0;
-            
-            /* Flush data if device is not busy. */
-            if(flash_io_is_busy() == false) {
-                status = flash_write(flash_address.currentAddress, 0x00, fd->buf_1, fd->buffer_index);
-            } else {
-                failed = true;
-            }
-            
-            if((status&PROG_FAIL) != 0)
-            {
-                failed = true;
-            }
-        }
-    
-        /* Update current address pointer if the program operation didn't fail. */
-        if(failed == false)
-        {
-            update_current_address();
-        }
+
+    /* Update current address pointer if the program operation didn't fail. */
+    if(failed == false)
+    {
+        update_current_address();
+    }
     }    
 }
 
