@@ -26,11 +26,11 @@ static FLASH_ADDRESS_DESCRIPTOR flash_address;
 void flash_io_init(FLASH_DESCRIPTOR *fd, int page_size)
 {
     /* Initialize the external flash device(s). */
-    flash_init();
+    seal_flash_init();
     
     /* Erase device (except superblock). */
-    flash_erase_device();
-    flash_wait_until_not_busy();
+    seal_flash_erase_device();
+    seal_flash_wait_until_not_busy();
     
     /* Initialize the buffer index to 0. */
     fd->buffer_index  = 0;
@@ -71,7 +71,7 @@ uint32_t flash_io_read(FLASH_DESCRIPTOR *fd, uint8_t *buf, size_t count)
         update_next_address();
             
         /* Read data into the active buffer. */
-        status = flash_read(flash_address.currentAddress, 0x00, buf, PAGE_SIZE_LESS);
+        status = seal_flash_read(flash_address.currentAddress, 0x00, buf, PAGE_SIZE_LESS);
             
         /* Determine how much data to read into user's buffer. */
         if(count >= PAGE_SIZE_LESS) {
@@ -80,19 +80,11 @@ uint32_t flash_io_read(FLASH_DESCRIPTOR *fd, uint8_t *buf, size_t count)
             amountToRead = count;
         }
             
-        /* Fill the user's buffer with the data. */
-        i = 0;
-       // while(i < amountToRead)
-        //{
-        //    buf[i] = fd->buf_0[i];
-        //    i++;
-      //  }
-            
         /* Check for busy. Will block until read is complete. */
         if(flash_io_is_busy() == true)
         {
             /* Wait until device is done reading. */
-            flash_wait_until_not_busy();
+            seal_flash_wait_until_not_busy();
         }
         
         /* Update current address pointer. */
@@ -170,7 +162,7 @@ uint32_t flash_io_write(FLASH_DESCRIPTOR *fd, uint8_t *buf, size_t count)
                 
                 /* Flush data if device is not busy. */
                 if(flash_io_is_busy() == false) {
-                    status = flash_write(flash_address.currentAddress, 0x00, fd->buf_0, PAGE_SIZE_LESS);
+                    status = seal_flash_write(flash_address.currentAddress, 0x00, fd->buf_0, PAGE_SIZE_LESS);
                 } else {
                     failed = true;
                 }
@@ -221,7 +213,7 @@ uint32_t flash_io_write(FLASH_DESCRIPTOR *fd, uint8_t *buf, size_t count)
  *      isBusy    :   Returns TRUE if flash is busy.
  *************************************************************/
 bool flash_io_is_busy() {
-    return (flash_is_busy());
+    return (seal_flash_is_busy());
 }
 
 /*************************************************************
@@ -247,7 +239,7 @@ void flash_io_flush(FLASH_DESCRIPTOR *fd)
             
         /* Flush data if device is not busy. */
         if(flash_io_is_busy() == false) {
-            status = flash_write(flash_address.currentAddress, 0x00, fd->buf_0, fd->buffer_index);
+            status = seal_flash_write(flash_address.currentAddress, 0x00, fd->buf_0, fd->buffer_index);
         } else {
             failed = true;
         }
@@ -304,7 +296,7 @@ void flash_io_reset_addr()
  *************************************************************/
 uint32_t update_next_address() {
 	/* Check if block out of main array. */
-    if(calculate_block_offset(flash_address.currentAddress) >= NUM_BLOCKS) {
+    if(seal_calculate_block_offset(flash_address.currentAddress) >= NUM_BLOCKS) {
         /* ERROR - can't read out of array bounds. */ 
     } else {
         flash_address.nextAddress++;
@@ -330,7 +322,7 @@ uint32_t update_next_address() {
  *************************************************************/
 uint32_t update_current_address() {
     /* Check if block out of main array. */
-    if(calculate_block_offset(flash_address.currentAddress) >= NUM_BLOCKS) {
+    if(seal_calculate_block_offset(flash_address.currentAddress) >= NUM_BLOCKS) {
         /* ERROR - can't read out of array bounds. */
     } else {
         flash_address.currentAddress++;
