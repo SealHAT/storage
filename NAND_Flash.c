@@ -8,8 +8,6 @@
 #include "NAND_Flash.h"
 
 /* TODO:
- * 1) Update "spi_flash" component to be named something better, like "SPI_FLASH".
- * 2) Get updated config file for line ending stuff.
  * 3) CS pins will ultimately need unique names for each device connected to micro.
  * 4) Validate dataSize and colAddress when writing.
  */
@@ -50,10 +48,6 @@ SUPERBLOCK_t superblock;
 void seal_flash_init()
 {
     uint8_t status;
-    
-    /* Allow time for memory device initial setup (minimum power-up time)
-     * before sending reset signal. Minimum time is 250us. */ 
-    delay_ms(1);
     
     /* Initialize SPI and SPI buffers. */
     seal_flash_initSPI();
@@ -303,7 +297,7 @@ void seal_flash_initSPI()
     spi_flash_buff.txbuf = flash_MOSI;
     
     /* Set active chip. */
-    activeFlashChip = 0;
+    seal_set_active_chip(0);
 
     /* Setup SPI IO */
 	/* Set clock mode and enable SPI */

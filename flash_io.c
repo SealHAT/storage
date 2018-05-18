@@ -25,15 +25,22 @@ static FLASH_ADDRESS_DESCRIPTOR flash_address;
  *************************************************************/
 void flash_io_init(FLASH_DESCRIPTOR *fd, int page_size)
 {
-    /* Initialize the external flash device(s). */
-    seal_flash_init();
+    int i = 0;
     
-    /* Erase device (except superblock). */
-    seal_flash_erase_device();
-    seal_flash_wait_until_not_busy();
+    /* Initialize the external flash device(s). */
+    while(i < MAX_NUM_CHIPS)
+    {
+        seal_flash_init();
+        seal_flash_erase_device();
+        seal_set_active_chip(i);
+        i++;
+    }
+    
+    /* Set the active chip back to chip 0. */
+    seal_set_active_chip(0);
     
     /* Initialize the buffer index to 0. */
-    fd->buffer_index  = 0;
+    fd->buffer_index = 0;
     
     /* Set the page size for this flash. */
     fd->PAGE_SIZE = page_size;
@@ -60,10 +67,10 @@ void flash_io_init(FLASH_DESCRIPTOR *fd, int page_size)
  *************************************************************/
 uint32_t flash_io_read(FLASH_DESCRIPTOR *fd, uint8_t *buf, size_t count)
 {
-    uint8_t  status;
-    uint32_t amountRead = 0;
-    int      i;
-    uint32_t amountToRead;
+    uint8_t  status;            /* Status of flash operations. */
+    uint32_t amountRead = 0;    /* Number of bytes actually read. */
+    int      i;                 /* Loop control variable. */
+    uint32_t amountToRead;      /* Amount attempting to be read. */
     
     if(flash_io_is_busy() == false)
     {
@@ -128,15 +135,11 @@ uint32_t flash_io_read(FLASH_DESCRIPTOR *fd, uint8_t *buf, size_t count)
  *************************************************************/
 uint32_t flash_io_write(FLASH_DESCRIPTOR *fd, uint8_t *buf, size_t count)
 {     
-    /* Write the full size of data into the ping pong buffer. If free space in 
-     * ping pong buffer minus the count of data to write is less than or equal
-     * to zero, then the buffer must be flushed and switched. */ 
-    /* Loop until all data is written to the buffer. */ 
-    /* Address will need to be updated after each write operation. */
-    uint8_t  status;
-    uint32_t amountWritten = 0;
-    bool     failed        = false;
+    uint8_t  status;                /* Status of flash write operations. */
+    uint32_t amountWritten = 0;     /* Amount of data actually written. */
+    bool     failed        = false; /* Holds success or failure of write operation. */
     
+    /* Write data to flash buffer if the device is not currently busy. */
     if(flash_io_is_busy() == false)
     {
         /* Write data into the buffers until all data has been written or until the operation fails. */
@@ -253,11 +256,11 @@ void flash_io_flush(FLASH_DESCRIPTOR *fd)
             failed = true;
         }
 
-    /* Update current address pointer if the program operation didn't fail. */
-    if(failed == false)
-    {
-        update_current_address();
-    }
+        /* Update current address pointer if the program operation didn't fail. */
+        if(failed == false)
+        {
+            update_current_address();
+        }
     }    
 }
 
@@ -296,9 +299,12 @@ void flash_io_reset_addr()
  *************************************************************/
 uint32_t update_next_address() {
 	/* Check if block out of main array. */
-    if(seal_calculate_block_offset(flash_address.currentAddress) >= NUM_BLOCKS) {
+    if(seal_calculate_block_offset(flash_address.currentAddress) >= NUM_BLOCKS)
+    {
         /* ERROR - can't read out of array bounds. */ 
-    } else {
+    } 
+    else
+    {
         flash_address.nextAddress++;
     }
 
@@ -322,9 +328,12 @@ uint32_t update_next_address() {
  *************************************************************/
 uint32_t update_current_address() {
     /* Check if block out of main array. */
-    if(seal_calculate_block_offset(flash_address.currentAddress) >= NUM_BLOCKS) {
+    if(seal_calculate_block_offset(flash_address.currentAddress) >= NUM_BLOCKS)
+    {
         /* ERROR - can't read out of array bounds. */
-    } else {
+    }
+    else
+    {
         flash_address.currentAddress++;
     }
 
@@ -378,5 +387,7 @@ void reset_address_info()
     /* Initialize the address descriptor. Initialize block address to block 1 (after the superblock). */
     flash_address.currentAddress   = 0x40;
     flash_address.nextAddress      = 0x40;
-    flash_address.currentChipInUse = 0x00;    
+    flash_address.currentChipInUse = 0x00;
+    
+    seal_set_active_chip(0);
 }

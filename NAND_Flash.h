@@ -345,4 +345,12 @@ uint32_t seal_calculate_block_offset(uint32_t startingBlockAddress);
  *************************************************************/
 void seal_flash_spi_transaction();
 
+/*************************************************************
+ * FUNCTION: seal_set_active_chip()
+ * -----------------------------------------------------------
+ * This function sets the active chip to a new value. The 
+ * active value can presently accept values of 0, or 1.
+ *************************************************************/
+void seal_set_active_chip(uint8_t newActiveChip);
+
 #endif /* NAND_FLASH_H_ */
