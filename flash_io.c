@@ -9,6 +9,7 @@
 
 /* GLOBALS */
 static FLASH_ADDRESS_DESCRIPTOR flash_address;
+bool FLASH_IS_FULL;
 
 /*************************************************************
  * FUNCTION: flash_io_init()
@@ -25,7 +26,10 @@ static FLASH_ADDRESS_DESCRIPTOR flash_address;
  *************************************************************/
 void flash_io_init(FLASH_DESCRIPTOR *fd, int page_size)
 {
-    int i = 0;
+    int i = 0;  /* Loop control variable. */
+    
+    /* Will be true after all memory is filled */
+    FLASH_IS_FULL = false;
     
     /* Initialize the external flash device(s). */
     while(i < MAX_NUM_CHIPS)
@@ -301,7 +305,17 @@ uint32_t update_next_address() {
 	/* Check if block out of main array. */
     if(seal_calculate_block_offset(flash_address.currentAddress) >= NUM_BLOCKS)
     {
-        /* ERROR - can't read out of array bounds. */ 
+        /* Make sure there is still more space on the device. */
+        if(flash_address.currentChipInUse < (MAX_NUM_CHIPS - 1))
+        {
+            /* Switch chip and set address pointer. */
+            switch_flash_chips();
+        }
+        else
+        {
+            /* Device out of space! Set global flag. */
+            FLASH_IS_FULL = true;
+        }
     } 
     else
     {
@@ -390,4 +404,26 @@ void reset_address_info()
     flash_address.currentChipInUse = 0x00;
     
     seal_set_active_chip(0);
+}
+
+/*************************************************************
+ * FUNCTION: switch_flash_chips()
+ * -----------------------------------------------------------
+ * This function switches to the next available flash chip and
+ * sets the address pointer to the first user-addressable 
+ * space.
+ *
+ * Parameters: none
+ *
+ * Returns: void
+ *************************************************************/
+void switch_flash_chips()
+{
+    /* Switch to next flash chip. */
+    flash_address.currentChipInUse++;
+    seal_set_active_chip(flash_address.currentChipInUse);
+    
+    /* Set address pointer to beginning of new flash chip. */
+    flash_address.currentAddress   = 0x40;
+    flash_address.nextAddress      = 0x40;
 }

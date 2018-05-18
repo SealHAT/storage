@@ -30,8 +30,8 @@ typedef struct
     uint8_t  currentChipInUse;                  /* Which chip is currently in use. [0, numChips-1]. Will be initialized to 0. */
 } FLASH_ADDRESS_DESCRIPTOR;
 
-/* THIS STRUCT IS FOR INTERNAL PROCESSING ONLY - DO NOT INSTANTIATE ANYWHERE ELSE. */
-//extern FLASH_ADDRESS_DESCRIPTOR flash_address;
+/* Global flag for determining when the flash is completely full. */
+extern bool FLASH_IS_FULL;
 
 /*************************************************************
  * FUNCTION: flash_io_init()
@@ -127,5 +127,14 @@ uint32_t get_next_address();
  * device.
  *************************************************************/
 void reset_address_info();
+
+/*************************************************************
+ * FUNCTION: switch_flash_chips()
+ * -----------------------------------------------------------
+ * This function switches to the next available flash chip and
+ * sets the address pointer to the first user-addressable 
+ * space.
+ *************************************************************/
+void switch_flash_chips();
 
 #endif /* FLASH_IO_H_ */
