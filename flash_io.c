@@ -294,8 +294,6 @@ void flash_io_reset_addr()
  * updated is at or past the final allowed value based on 
  * NUM_BLOCKS, then an error message is thrown.  
  *
- * TODO: Instead of error message, switch to new flash chip.
- *
  * Parameters: none
  *
  * Returns:
@@ -332,8 +330,6 @@ uint32_t update_next_address() {
  * written to or read from. If the block currently being
  * updated is at or past the final allowed value based on
  * NUM_BLOCKS, then an error message is thrown. 
- * 
- * TODO: Instead of error message, switch to new flash chip.
  *
  * Parameters: none
  *
@@ -344,7 +340,17 @@ uint32_t update_current_address() {
     /* Check if block out of main array. */
     if(seal_calculate_block_offset(flash_address.currentAddress) >= NUM_BLOCKS)
     {
-        /* ERROR - can't read out of array bounds. */
+        /* Make sure there is still more space on the device. */
+        if(flash_address.currentChipInUse < (MAX_NUM_CHIPS - 1))
+        {
+            /* Switch chip and set address pointer. */
+            switch_flash_chips();
+        }
+        else
+        {
+            /* Device out of space! Set global flag. */
+            FLASH_IS_FULL = true;
+        }
     }
     else
     {
