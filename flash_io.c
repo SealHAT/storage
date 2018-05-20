@@ -71,10 +71,8 @@ void flash_io_init(FLASH_DESCRIPTOR *fd, int page_size)
  *************************************************************/
 uint32_t flash_io_read(FLASH_DESCRIPTOR *fd, uint8_t *buf, size_t count)
 {
-    uint8_t  status;            /* Status of flash operations. */
     uint32_t amountRead = 0;    /* Number of bytes actually read. */
-    int      i;                 /* Loop control variable. */
-    uint32_t amountToRead;      /* Amount attempting to be read. */
+    (void) fd;
     
     if(flash_io_is_busy() == false)
     {
@@ -82,14 +80,7 @@ uint32_t flash_io_read(FLASH_DESCRIPTOR *fd, uint8_t *buf, size_t count)
         update_next_address();
             
         /* Read data into the active buffer. */
-        status = seal_flash_read(flash_address.currentAddress, 0x00, buf, PAGE_SIZE_LESS);
-            
-        /* Determine how much data to read into user's buffer. */
-        if(count >= PAGE_SIZE_LESS) {
-            amountToRead = PAGE_SIZE_LESS;
-        } else {
-            amountToRead = count;
-        }
+        seal_flash_read(flash_address.currentAddress, 0x00, buf, PAGE_SIZE_LESS);
             
         /* Check for busy. Will block until read is complete. */
         if(flash_io_is_busy() == true)

@@ -32,6 +32,14 @@ const char SIGNATURE[SIGNATURE_SIZE] = "SealHAT!";
 
 uint32_t badBlockTable[MAX_BAD_BLOCKS];
 
+static uint8_t staticPageData[PAGE_SIZE_EXTRA];                  /* Holds a page worth (PAGE_SIZE bytes) of data. */
+
+/* SPI COMMUNICATION BUFFERS */
+uint8_t flash_MOSI[NAND_BUFFER_SIZE];                            /* Master's output buffer */
+uint8_t flash_MISO[NAND_BUFFER_SIZE];                            /* Master's input buffer */
+struct  spi_xfer spi_flash_buff;                                 /* SPI transfer descriptor */
+uint8_t activeFlashChip;                                         /* Current active flash chip. Currently supports up to three chips, with the value 00 being all chips deselected. */
+
 SUPERBLOCK_t superblock;
 
 /*************************************************************
@@ -99,7 +107,6 @@ void seal_flash_read_superblock()
 {
     uint32_t address;                   /* Block and page offset */
     uint32_t colAddress;                /* Column offset within a page */
-    static uint8_t  page[PAGE_SIZE_EXTRA];     /* Holds first page of data on flash device */
     bool     valid;                     /* Status of the superblock data */
     int      i;
     int      j;
@@ -109,10 +116,10 @@ void seal_flash_read_superblock()
     colAddress  = 0x0000;
 
     /* Read first page of memory to check for superblock. */
-    seal_flash_read_page((uint8_t *) &address, (uint8_t *) &colAddress, page);
+    seal_flash_read_page((uint8_t *) &address, (uint8_t *) &colAddress, staticPageData);
     
     /* Read the data into a struct for further processing. */
-    seal_init_cache_superblock(page, PAGE_SIZE_EXTRA);
+    seal_init_cache_superblock(staticPageData, PAGE_SIZE_EXTRA);
     
     /* Call the validate function to ensure the superblock data is valid. If it
      * is not valid, a new superblock will be created and written to the flash. */
@@ -131,7 +138,7 @@ void seal_flash_read_superblock()
         /* Calls the bad block table builder. This will iterate through the entire
          * device and determine which blocks should not be used. This bad block 
          * table will be stored on the first page of the first block of the device. */
-        page[8] = seal_build_bad_block_table();
+        staticPageData[8] = seal_build_bad_block_table();
 
         /* The bad block table generates a table of 32-bit addresses for 
          * blocks that should not be written to or read from. These values
@@ -140,12 +147,12 @@ void seal_flash_read_superblock()
          * The value of page[8] contains the size of the bad block table. */
         i = 9;
         j = 0;
-        while(j < page[8])
+        while(j < staticPageData[8])
         {
-            page[i]   = (uint8_t) (badBlockTable[j] >> 24);
-            page[++i] = (uint8_t) (badBlockTable[j] >> 16);
-            page[++i] = (uint8_t) (badBlockTable[j] >> 8);
-            page[++i] = (uint8_t) (badBlockTable[j]);
+            staticPageData[i]   = (uint8_t) (badBlockTable[j] >> 24);
+            staticPageData[++i] = (uint8_t) (badBlockTable[j] >> 16);
+            staticPageData[++i] = (uint8_t) (badBlockTable[j] >> 8);
+            staticPageData[++i] = (uint8_t) (badBlockTable[j]);
             i++;
             j++;
         }
@@ -154,7 +161,7 @@ void seal_flash_read_superblock()
          * with zeros. */
         while(i < PAGE_SIZE_LESS)
         {
-            page[i] = 0;
+            staticPageData[i] = 0;
             i++;
         }
         
@@ -162,14 +169,14 @@ void seal_flash_read_superblock()
          * loaded if this value is valid. */
         for(i = 0; i < SIGNATURE_SIZE; i++)
         {
-            page[i] = SIGNATURE[i];
+            staticPageData[i] = SIGNATURE[i];
         }
         
         /* Keep a copy of the superblock data on the micro during runtime. Also write the
          * data back to the device immediately to ensure a copy gets preserved. */
-        seal_init_cache_superblock(page, PAGE_SIZE_EXTRA);
+        seal_init_cache_superblock(staticPageData, PAGE_SIZE_EXTRA);
         seal_flash_wait_until_not_busy();
-        seal_flash_write_page(page, PAGE_SIZE_EXTRA, (uint8_t *) &colAddress, (uint8_t*) &address);
+        seal_flash_write_page(staticPageData, PAGE_SIZE_EXTRA, (uint8_t *) &colAddress, (uint8_t*) &address);
         seal_flash_wait_until_not_busy();
     }
 }
@@ -722,7 +729,7 @@ bool seal_flash_is_busy()
  *************************************************************/
 uint8_t seal_flash_block_erase(uint8_t blockAddress[])
 {
-     volatile uint8_t status = seal_flash_status();
+    volatile uint8_t status = seal_flash_status();
 
     /* If the device is not busy, attempt to program it. */
     if((status & BUSY_MASK) == 0)
@@ -1091,7 +1098,6 @@ uint8_t seal_build_bad_block_table()
     uint32_t address;               /* The micro stores values little endian but is configured to send SPI data big endian */
     uint8_t  badCount;              /* Total number of bad blocks found */
     uint32_t nextBlock;             /* Amount to increase address by to get to next block */
-    static uint8_t  page[PAGE_SIZE_EXTRA]; /* Holds a page worth (PAGE_SIZE bytes) of data. */
     uint32_t colAddress;            /* Column address for in-page offset */
     uint8_t  tableIndex;            /* The current index of the bad block table */
     
@@ -1107,11 +1113,11 @@ uint8_t seal_build_bad_block_table()
     {
         /* Read the first page of each block. Casts the integer value of the address to an
          * "array" for the Read function. */
-        seal_flash_read_page((uint8_t *) &address, (uint8_t *) &colAddress, page);
+        seal_flash_read_page((uint8_t *) &address, (uint8_t *) &colAddress, staticPageData);
         
         /* If the first address in the spare area of the first page of a block is not 0xFF,
          * that means it was marked as a bad block and should not be used. */
-        if(page[BAD_BLK_ADDR] != 0xFF)
+        if(staticPageData[BAD_BLK_ADDR] != 0xFF)
         {
             if(tableIndex < MAX_BAD_BLOCKS)
             {

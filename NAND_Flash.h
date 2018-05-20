@@ -65,10 +65,8 @@ extern const uint8_t PROG_FAIL;                 /* Mask for checking if the memo
 extern const uint8_t WEL_MASK;                  /* Mask for checking if write enable is high */
 
 /* SPI COMMUNICATION BUFFERS */
-uint8_t  flash_MOSI[NAND_BUFFER_SIZE];          /* Master's output buffer */
-uint8_t  flash_MISO[NAND_BUFFER_SIZE];          /* Master's input buffer */
-struct   spi_xfer spi_flash_buff;               /* SPI transfer descriptor */
-uint8_t  activeFlashChip;                       /* Current active flash chip. Currently supports up to three chips, with the value 00 being all chips deselected. */
+extern struct  spi_xfer spi_flash_buff;         /* SPI transfer descriptor */
+extern uint8_t activeFlashChip;                 /* Current active flash chip. Currently supports up to three chips, with the value 00 being all chips deselected. */
 
 /* BAD BLOCK TABLE - the device is guaranteed to have a maximum of 2% of its blocks go bad 
  * within its lifetime. For this device, that means a maximum total of 41 blocks. */
