@@ -143,6 +143,103 @@ drivers:
     variant: null
     clocks:
       domain_group: null
+  EXTERNAL_IRQ_0:
+    user_label: EXTERNAL_IRQ_0
+    definition: Atmel:SAMD21_Drivers:0.0.1::SAMD21G18A-MF::EIC::driver_config_definition::Default::HAL:Driver:Ext.IRQ
+    functionality: External_IRQ
+    api: HAL:Driver:Ext_IRQ
+    configuration:
+      eic_arch_enable_irq_setting0: false
+      eic_arch_enable_irq_setting1: false
+      eic_arch_enable_irq_setting10: false
+      eic_arch_enable_irq_setting11: false
+      eic_arch_enable_irq_setting12: false
+      eic_arch_enable_irq_setting13: false
+      eic_arch_enable_irq_setting14: false
+      eic_arch_enable_irq_setting15: false
+      eic_arch_enable_irq_setting2: false
+      eic_arch_enable_irq_setting3: false
+      eic_arch_enable_irq_setting4: false
+      eic_arch_enable_irq_setting5: false
+      eic_arch_enable_irq_setting6: false
+      eic_arch_enable_irq_setting7: false
+      eic_arch_enable_irq_setting8: false
+      eic_arch_enable_irq_setting9: false
+      eic_arch_extinteo0: false
+      eic_arch_extinteo1: false
+      eic_arch_extinteo10: false
+      eic_arch_extinteo11: false
+      eic_arch_extinteo12: false
+      eic_arch_extinteo13: false
+      eic_arch_extinteo14: false
+      eic_arch_extinteo15: false
+      eic_arch_extinteo2: false
+      eic_arch_extinteo3: false
+      eic_arch_extinteo4: false
+      eic_arch_extinteo5: false
+      eic_arch_extinteo6: false
+      eic_arch_extinteo7: false
+      eic_arch_extinteo8: false
+      eic_arch_extinteo9: false
+      eic_arch_filten0: false
+      eic_arch_filten1: false
+      eic_arch_filten10: false
+      eic_arch_filten11: false
+      eic_arch_filten12: false
+      eic_arch_filten13: false
+      eic_arch_filten14: false
+      eic_arch_filten15: false
+      eic_arch_filten2: false
+      eic_arch_filten3: false
+      eic_arch_filten4: false
+      eic_arch_filten5: false
+      eic_arch_filten6: false
+      eic_arch_filten7: false
+      eic_arch_filten8: false
+      eic_arch_filten9: false
+      eic_arch_nmifilten: false
+      eic_arch_nmisense: No detection
+      eic_arch_sense0: No detection
+      eic_arch_sense1: No detection
+      eic_arch_sense10: No detection
+      eic_arch_sense11: No detection
+      eic_arch_sense12: No detection
+      eic_arch_sense13: No detection
+      eic_arch_sense14: No detection
+      eic_arch_sense15: No detection
+      eic_arch_sense2: No detection
+      eic_arch_sense3: No detection
+      eic_arch_sense4: No detection
+      eic_arch_sense5: No detection
+      eic_arch_sense6: No detection
+      eic_arch_sense7: No detection
+      eic_arch_sense8: No detection
+      eic_arch_sense9: No detection
+      eic_arch_wakeupen0: false
+      eic_arch_wakeupen1: false
+      eic_arch_wakeupen10: false
+      eic_arch_wakeupen11: false
+      eic_arch_wakeupen12: false
+      eic_arch_wakeupen13: false
+      eic_arch_wakeupen14: false
+      eic_arch_wakeupen15: false
+      eic_arch_wakeupen2: false
+      eic_arch_wakeupen3: false
+      eic_arch_wakeupen4: false
+      eic_arch_wakeupen5: false
+      eic_arch_wakeupen6: false
+      eic_arch_wakeupen7: false
+      eic_arch_wakeupen8: false
+      eic_arch_wakeupen9: false
+    optional_signals: []
+    variant: null
+    clocks:
+      domain_group:
+        nodes:
+        - name: EIC
+          input: Generic clock generator 0
+        configuration:
+          eic_gclk_selection: Generic clock generator 0
   GCLK:
     user_label: GCLK
     definition: Atmel:SAMD21_Drivers:0.0.1::SAMD21G18A-MF::GCLK::driver_config_definition::GCLK::HAL:HPL:GCLK
@@ -284,11 +381,11 @@ drivers:
           slow_gclk_selection: Generic clock generator 1
   spi_flash:
     user_label: spi_flash
-    definition: Atmel:SAMD21_Drivers:0.0.1::SAMD21G18A-MF::SERCOM4::driver_config_definition::SPI.Master::HAL:Driver:SPI.Master.Sync
+    definition: Atmel:SAMD21_Drivers:0.0.1::SAMD21G18A-MF::SERCOM4::driver_config_definition::SPI.Master::HAL:Driver:SPI.Master.DMA
     functionality: SPI
-    api: HAL:Driver:SPI_Master_Sync
+    api: HAL:Driver:SPI_Master_DMA
     configuration:
-      spi_master_advanced: false
+      spi_master_advanced: true
       spi_master_arch_cpha: Sample input on leading edge
       spi_master_arch_cpol: SCK is low when idle
       spi_master_arch_dbgstop: Keep running
@@ -297,7 +394,10 @@ drivers:
       spi_master_arch_runstdby: false
       spi_master_baud_rate: 1000000
       spi_master_character_size: 8 bits
+      spi_master_dma_rx_channel: 1
+      spi_master_dma_tx_channel: 0
       spi_master_dummybyte: 511
+      spi_master_rx_channel: true
       spi_master_rx_enable: true
     optional_signals: []
     variant:

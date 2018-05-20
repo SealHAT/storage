@@ -8,8 +8,6 @@
 #include "NAND_Flash.h"
 
 /* TODO:
- * 1) Update "spi_flash" component to be named something better, like "SPI_FLASH".
- * 2) Get updated config file for line ending stuff.
  * 3) CS pins will ultimately need unique names for each device connected to micro.
  * 4) Validate dataSize and colAddress when writing.
  */
@@ -37,7 +35,7 @@ uint32_t badBlockTable[MAX_BAD_BLOCKS];
 SUPERBLOCK_t superblock;
 
 /*************************************************************
- * FUNCTION: flash_init()
+ * FUNCTION: seal_flash_init()
  * -----------------------------------------------------------
  * This function calls the other flash initialization 
  * functions to initialize SPI buffers, SPI device, and 
@@ -47,42 +45,38 @@ SUPERBLOCK_t superblock;
  *
  * Returns: void
  *************************************************************/
-void flash_init()
+void seal_flash_init()
 {
     uint8_t status;
     
-    /* Allow time for memory device initial setup (minimum power-up time)
-     * before sending reset signal. Minimum time is 250us. */ 
-    delay_ms(1);
-    
     /* Initialize SPI and SPI buffers. */
-    flash_initSPI();
-    flash_init_buffers();
-    flash_init_BBT();
+    seal_flash_initSPI();
+    seal_flash_init_buffers();
+    seal_flash_init_BBT();
     
     /* Reset slave device (memory chip). */ 
-    status = flash_reset();     //status should be 0x01 if busy and 0x00 when done
+    status = seal_flash_reset();     //status should be 0x01 if busy and 0x00 when done
     
     /* Minimum 1.25ms delay after reset command before any
      * other commands can be issued. Rounded up to 2ms. */
-    delay_ms(200);
+    delay_ms(2);
     
     /* Unlock all blocks (locked by default at power up). Returns status of the
      * block lock register. If the blocks are already unlocked, the unlock 
      * command will not be sent. */
-    status = flash_block_lock_status();
+    status = seal_flash_block_lock_status();
     
     if(status > 0)
     {
-        status = flash_unlock_all_blocks();
+        status = seal_flash_unlock_all_blocks();
     } 
 
     /* Read superblock data. If superblock does not exist on device, create one. */
-    flash_read_superblock();
+    seal_flash_read_superblock();
 }
 
 /*************************************************************
- * FUNCTION: flash_read_superblock()
+ * FUNCTION: seal_flash_read_superblock()
  * -----------------------------------------------------------
  * This function reads the first page of the device for data.
  * The data stored here should be a struct of superblock
@@ -101,12 +95,11 @@ void flash_init()
  *
  * Returns: void
  *************************************************************/
-void flash_read_superblock()
+void seal_flash_read_superblock()
 {
-    volatile uint8_t status;            /* Value of the status register */
     uint32_t address;                   /* Block and page offset */
     uint32_t colAddress;                /* Column offset within a page */
-    uint8_t  page[PAGE_SIZE_EXTRA];     /* Holds first page of data on flash device */
+    static uint8_t  page[PAGE_SIZE_EXTRA];     /* Holds first page of data on flash device */
     bool     valid;                     /* Status of the superblock data */
     int      i;
     int      j;
@@ -114,19 +107,16 @@ void flash_read_superblock()
     /* INITIALIZATIONS - start at block zero, column zero. */
     address     = 0x000000;
     colAddress  = 0x0000;
-    
-    /* TODO - block erase for testing. erases first page. remove later! */
-    //status = flash_block_erase((uint8_t *) &address);
-        
+
     /* Read first page of memory to check for superblock. */
-    status = flash_read_page((uint8_t *) &address, (uint8_t *) &colAddress, page);
+    seal_flash_read_page((uint8_t *) &address, (uint8_t *) &colAddress, page);
     
     /* Read the data into a struct for further processing. */
-    init_cache_superblock(page, PAGE_SIZE_EXTRA);
+    seal_init_cache_superblock(page, PAGE_SIZE_EXTRA);
     
     /* Call the validate function to ensure the superblock data is valid. If it
      * is not valid, a new superblock will be created and written to the flash. */
-    valid = validate_superblock();
+    valid = seal_validate_superblock();
     
     /* If superblock does not exist, create one. Keep copy on micro, but write 
      * back immediately to flash as well. */
@@ -134,14 +124,14 @@ void flash_read_superblock()
     {
         /* Erase the first page of the device since it was invalid. A new page will
          * be written at the bottom of this function. */
-        status = flash_block_erase((uint8_t *) &address);
+        seal_flash_block_erase((uint8_t *) &address);
         
-        flash_wait_until_not_busy();
+        seal_flash_wait_until_not_busy();
         
         /* Calls the bad block table builder. This will iterate through the entire
          * device and determine which blocks should not be used. This bad block 
          * table will be stored on the first page of the first block of the device. */
-        page[8] = build_bad_block_table();
+        page[8] = seal_build_bad_block_table();
 
         /* The bad block table generates a table of 32-bit addresses for 
          * blocks that should not be written to or read from. These values
@@ -177,15 +167,15 @@ void flash_read_superblock()
         
         /* Keep a copy of the superblock data on the micro during runtime. Also write the
          * data back to the device immediately to ensure a copy gets preserved. */
-        init_cache_superblock(page, PAGE_SIZE_EXTRA);
-        flash_wait_until_not_busy();
-        status = flash_write_page(page, PAGE_SIZE_EXTRA, (uint8_t *) &colAddress, (uint8_t*) &address);
-        flash_wait_until_not_busy();
+        seal_init_cache_superblock(page, PAGE_SIZE_EXTRA);
+        seal_flash_wait_until_not_busy();
+        seal_flash_write_page(page, PAGE_SIZE_EXTRA, (uint8_t *) &colAddress, (uint8_t*) &address);
+        seal_flash_wait_until_not_busy();
     }
 }
 
 /*************************************************************
- * FUNCTION: validate_superblock()
+ * FUNCTION: seal_validate_superblock()
  * -----------------------------------------------------------
  * This function takes the superblock data and validates it.
  * The device signature is checked first to ensure a valid 
@@ -200,7 +190,7 @@ void flash_read_superblock()
  * Returns:
  *      valid   :   Status of the superblock data.
  *************************************************************/
-bool validate_superblock()
+bool seal_validate_superblock()
 {
     bool valid;         /* Keeps track of if superblock params are valid */
     int  i;
@@ -233,7 +223,7 @@ bool validate_superblock()
 }
 
 /*************************************************************
- * FUNCTION: init_cache_superblock()
+ * FUNCTION: seal_init_cache_superblock()
  * -----------------------------------------------------------
  * This function takes the superblock data and stores it in a
  * struct that may be accessed during runtime. This function
@@ -246,11 +236,12 @@ bool validate_superblock()
  *
  * Returns: void
  *************************************************************/
-void init_cache_superblock(uint8_t page[], int pageSize)
+void seal_init_cache_superblock(uint8_t page[], int pageSize)
 {
     /* Superblock is global in this file. */
     int i;          /* Current page index. */
     int j;          /* Bad block table index. */
+    (void) pageSize;
     
     /* The first 8 bytes of data are the signature. */
     for(i = 0; i < SIGNATURE_SIZE; i++)
@@ -285,7 +276,7 @@ void init_cache_superblock(uint8_t page[], int pageSize)
 }
 
 /*************************************************************
- * FUNCTION: flash_initSPI()
+ * FUNCTION: seal_flash_initSPI()
  * -----------------------------------------------------------
  * This function initializes the SPI communication that will
  * be used to communicate with the memory device. It sets the
@@ -297,22 +288,25 @@ void init_cache_superblock(uint8_t page[], int pageSize)
  *
  * Returns: void
  *************************************************************/
-void flash_initSPI()
+void seal_flash_initSPI()
 {
 	/* Associate flash buffers with SPI device and set
      * buffer size. */
     spi_flash_buff.size  = NAND_BUFFER_SIZE;
     spi_flash_buff.rxbuf = flash_MISO;
     spi_flash_buff.txbuf = flash_MOSI;
+    
+    /* Set active chip. */
+    seal_set_active_chip(0);
 
     /* Setup SPI IO */
 	/* Set clock mode and enable SPI */
-	spi_m_sync_set_mode(&spi_flash, SPI_MODE_0);
-	spi_m_sync_enable(&spi_flash);
+	spi_m_sync_set_mode(&SPI_MEMORY, SPI_MODE_0);
+	spi_m_sync_enable(&SPI_MEMORY);
 }
 
 /*************************************************************
- * FUNCTION: flash_init_buffers()
+ * FUNCTION: seal_flash_init_buffers()
  * -----------------------------------------------------------
  * This function initializes the buffers that will be used for
  * SPI communication. The input buffer is initialized to all
@@ -326,7 +320,7 @@ void flash_initSPI()
  *
  * Returns: void
  *************************************************************/
-void flash_init_buffers()
+void seal_flash_init_buffers()
 {
 	int i; 
 	
@@ -339,7 +333,7 @@ void flash_init_buffers()
 }
 
 /*************************************************************
- * FUNCTION: flash_init_BBT()
+ * FUNCTION: seal_flash_init_BBT()
  * -----------------------------------------------------------
  * This function initializes the bad block table that will
  * hold addresses of known bad blocks within the device.
@@ -348,7 +342,7 @@ void flash_init_buffers()
  *
  * Returns: void
  *************************************************************/
-void flash_init_BBT()
+void seal_flash_init_BBT()
 {
     int i;
     
@@ -359,7 +353,7 @@ void flash_init_BBT()
 }
 
 /*************************************************************
- * FUNCTION: flash_setSPI_buffer_size()
+ * FUNCTION: seal_flash_setSPI_buffer_size()
  * -----------------------------------------------------------
  * This function is a utility function used to set the size
  * of the SPI buffer.
@@ -369,13 +363,13 @@ void flash_init_BBT()
  *
  * Returns: void
  *************************************************************/
-void flash_setSPI_buffer_size(int newSize)
+void seal_flash_setSPI_buffer_size(int newSize)
 {
     spi_flash_buff.size = newSize;
 }
 
 /*************************************************************
- * FUNCTION: flash_reset()
+ * FUNCTION: seal_flash_reset()
  * -----------------------------------------------------------
  * This function issues the RESET command: 0xFF. The command 
  * is placed in the output buffer and then sent over the SPI
@@ -392,34 +386,34 @@ void flash_setSPI_buffer_size(int newSize)
  * Returns: 
  *      status  :   Current status of the device
  *************************************************************/
-uint8_t flash_reset()
+uint8_t seal_flash_reset()
 {
     /* Get the current status of the device. */
-    uint8_t status = flash_status();
+    uint8_t status = seal_flash_status();
 
     /* Only reset device if the device is not currently busy. */
     if((status & BUSY_MASK) == 0)
     {
         /* Set SPI buffer to send only 1 byte of command data. 
          * Put the command in the output buffer. */
-        flash_setSPI_buffer_size(1);
+        seal_flash_setSPI_buffer_size(1);
         flash_MOSI[0] = RESET[0];
 
         /* Complete an SPI transaction */
-        flash_spi_transaction();
+        seal_flash_spi_transaction();
 
         /* Reinitialize output buffer. */
         flash_MOSI[0] = 0;
 
         /* Get updated status. */
-        status = flash_status();
+        status = seal_flash_status();
     }
 
     return (status);
 }
 
 /*************************************************************
- * FUNCTION: flash_status()
+ * FUNCTION: seal_flash_status()
  * -----------------------------------------------------------
  * Issue the GET FEATURES command: 0x0F 
  * Send address of FEATURES register: 0xC0
@@ -430,18 +424,18 @@ uint8_t flash_reset()
  * Returns:
  *      status  :   Current status of the device
  *************************************************************/
-uint8_t flash_status()
+uint8_t seal_flash_status()
 {
     /* Set buffer size to 3 and put command in output buffer:
      *      1 byte of command data
      *      1 byte of address
      *      1 additional byte as we wait to receive data from slave device */
-    flash_setSPI_buffer_size(3);
+    seal_flash_setSPI_buffer_size(3);
     flash_MOSI[0] = GET_FEAT[0];
     flash_MOSI[1] = GET_FEAT[1];
 
     /* Complete an SPI transaction */
-    flash_spi_transaction();
+    seal_flash_spi_transaction();
 
     /* Reinitialize output buffer. */
     flash_MOSI[0] = 0;
@@ -451,7 +445,7 @@ uint8_t flash_status()
 }
 
 /*************************************************************
- * FUNCTION: flash_set_WEL()
+ * FUNCTION: seal_flash_set_WEL()
  * -----------------------------------------------------------
  * This function issues the Set Write Enable Latch command to
  * the memory device. The command is placed into the output 
@@ -467,31 +461,31 @@ uint8_t flash_status()
  * Returns:
  *      status  :   Current status of the device
  *************************************************************/
-uint8_t flash_set_WEL()
+uint8_t seal_flash_set_WEL()
 {
-    uint8_t status = flash_status();
+    uint8_t status = seal_flash_status();
 
     if((status & BUSY_MASK) == 0)
     {
         /* Set SPI buffer to send only 1 byte of command data. 
          * Put the command in the output buffer. */
-        flash_setSPI_buffer_size(1);
+        seal_flash_setSPI_buffer_size(1);
         flash_MOSI[0] = SET_WEL[0];	
 	
         /* Complete an SPI transaction */
-        flash_spi_transaction();
+        seal_flash_spi_transaction();
 
         /* Reinitialize output buffer. */
         flash_MOSI[0] = SET_WEL[0];
 
-        status = flash_status();
+        status = seal_flash_status();
     }
 
     return (status);
 }
 
 /*************************************************************
- * FUNCTION: flash_write_page()
+ * FUNCTION: seal_flash_write_page()
  * -----------------------------------------------------------
  * This function writes a page of data to the Flash device.
  * First, the write enable flag (WEL bit) is set. Next, the
@@ -522,30 +516,30 @@ uint8_t flash_set_WEL()
  * Returns:
  *      status              :   Current status of the device
  *************************************************************/
-uint8_t flash_write_page(uint8_t data[], int dataSize, uint8_t colAddress[], uint8_t pageBlockAddress[])
+uint8_t seal_flash_write_page(uint8_t data[], int dataSize, uint8_t colAddress[], uint8_t pageBlockAddress[])
 {   
-    uint8_t status = flash_status();
+    uint8_t status = seal_flash_status();
 
     /* If the device is not busy, attempt to program it. */
     if((status & BUSY_MASK) == 0)
     {
-        status = flash_set_WEL();
+        status = seal_flash_set_WEL();
         
         /* Make sure Write Enable flag was set. */
         if((status & WEL_MASK) != 0)
         {
-            status = program_load(data, dataSize, colAddress);
+            status = seal_program_load(data, dataSize, colAddress);
 
             /* Wait until device is not busy. */
-            flash_wait_until_not_busy();
+            seal_flash_wait_until_not_busy();
 
             /* Make sure the program failure flag is not set before executing the write. */
             if((status & PROG_FAIL) == 0)
             {
-                status = execute_program(pageBlockAddress);
+                status = seal_execute_program(pageBlockAddress);
                 
                 /* Wait until device is not busy. */
-                flash_wait_until_not_busy();
+                seal_flash_wait_until_not_busy();
             }
         }            
     }
@@ -554,7 +548,7 @@ uint8_t flash_write_page(uint8_t data[], int dataSize, uint8_t colAddress[], uin
 }
 
 /*************************************************************
- * FUNCTION: flash_wait_until_not_busy()
+ * FUNCTION: seal_flash_wait_until_not_busy()
  * -----------------------------------------------------------
  * This function continuously checks the status register. The
  * function returns once the status register shows that the 
@@ -568,13 +562,13 @@ uint8_t flash_write_page(uint8_t data[], int dataSize, uint8_t colAddress[], uin
  *
  * Returns: void
  *************************************************************/
-void flash_wait_until_not_busy()
+void seal_flash_wait_until_not_busy()
 {
-    do { /* NOTHING */ } while ((flash_status() & BUSY_MASK) != 0);
+    do { /* NOTHING */ } while ((seal_flash_status() & BUSY_MASK) != 0);
 }
 
 /*************************************************************
- * FUNCTION: flash_read_page()
+ * FUNCTION: seal_flash_read_page()
  * -----------------------------------------------------------
  * This function reads a page of data from the Flash device.
  * First, a page of data is read from the main memory array of
@@ -599,27 +593,27 @@ void flash_wait_until_not_busy()
  * Returns:
  *      status              :   Current status of the device
  *************************************************************/
-uint8_t flash_read_page(uint8_t blockPageAddress[], uint8_t columnAddress[], uint8_t pageData[])
+uint8_t seal_flash_read_page(uint8_t blockPageAddress[], uint8_t columnAddress[], uint8_t pageData[])
 {
-    uint8_t status = flash_status();
+    uint8_t status = seal_flash_status();
 
     /* If the device is not busy, attempt to read a page. */
     if((status & BUSY_MASK) == 0)
     {
-        status = page_read(blockPageAddress);
+        status = seal_page_read(blockPageAddress);
 
         /* Wait until device is not busy. */
-        flash_wait_until_not_busy();
+        seal_flash_wait_until_not_busy();
 
         /* Start streaming data back from slave device. */
-        status = read_from_cache(columnAddress, pageData);
+        status = seal_read_from_cache(columnAddress, pageData);
     }
     
     return (status);
 }
 
 /*************************************************************
- * FUNCTION: flash_read()
+ * FUNCTION: seal_flash_read()
  * -----------------------------------------------------------
  * This function calls the flash_read_page function to read a 
  * page of data. This occurs only after the block address has
@@ -636,23 +630,23 @@ uint8_t flash_read_page(uint8_t blockPageAddress[], uint8_t columnAddress[], uin
  * Returns:
  *      status          :   Current status of the device
  *************************************************************/
-uint8_t flash_read(uint32_t blockAddress, uint32_t columnAddress, uint8_t dataBuffer[], int dataSize)
+uint8_t seal_flash_read(uint32_t blockAddress, uint32_t columnAddress, uint8_t dataBuffer[], int dataSize)
 {
     uint32_t offsetBlockAddress;    /* Corrected address of the page we should read from. */
     uint8_t  status;                /* Value of the status register. */
     
     /* Shift the block address to account for bad blocks. */
-    offsetBlockAddress = calculate_block_offset(blockAddress);
+    offsetBlockAddress = seal_calculate_block_offset(blockAddress);
     (void)dataSize;
     
     /* Call page read with the updated block address. */
-    status = flash_read_page((uint8_t *) &offsetBlockAddress, (uint8_t *) &columnAddress, dataBuffer);
+    status = seal_flash_read_page((uint8_t *) &offsetBlockAddress, (uint8_t *) &columnAddress, dataBuffer);
     
     return (status);
 }
 
 /*************************************************************
- * FUNCTION: flash_write()
+ * FUNCTION: seal_flash_write()
  * -----------------------------------------------------------
  * This function calls the flash_write_page function to write
  * a page of data. This occurs only after the block address
@@ -669,22 +663,22 @@ uint8_t flash_read(uint32_t blockAddress, uint32_t columnAddress, uint8_t dataBu
  * Returns:
  *      status          :   Current status of the device
  *************************************************************/
-uint8_t flash_write(uint32_t blockAddress, uint32_t columnAddress, uint8_t dataBuffer[], int dataSize)
+uint8_t seal_flash_write(uint32_t blockAddress, uint32_t columnAddress, uint8_t dataBuffer[], int dataSize)
 {
     uint32_t offsetBlockAddress;    /* Corrected address of the page we should read from. */
     uint8_t  status;                /* Value of the status register. */
         
     /* Shift the block address to account for bad blocks. */
-    offsetBlockAddress = calculate_block_offset(blockAddress);
+    offsetBlockAddress = seal_calculate_block_offset(blockAddress);
     (void)dataSize;
     
-    status = flash_write_page(dataBuffer, dataSize, (uint8_t *) &columnAddress, (uint8_t *) &offsetBlockAddress);
+    status = seal_flash_write_page(dataBuffer, dataSize, (uint8_t *) &columnAddress, (uint8_t *) &offsetBlockAddress);
    
    return (status);
 }
 
 /*************************************************************
- * FUNCTION: flash_is_busy()
+ * FUNCTION: seal_flash_is_busy()
  * -----------------------------------------------------------
  * This function checks the busy flag in the status register. 
  * If the device is NOT busy, then the status will become
@@ -695,14 +689,14 @@ uint8_t flash_write(uint32_t blockAddress, uint32_t columnAddress, uint8_t dataB
  * Returns:
  *      status  :  True if the device is busy, false otherwise.
  *************************************************************/
-bool flash_is_busy()
+bool seal_flash_is_busy()
 {
     /* Initialize status to busy. */
     bool status = true;
     
     /* Checks the busy flag in the status register. If the device is
      * NOT busy, then the status will become false for not busy. */
-    if((flash_status() & BUSY_MASK) == 0)
+    if((seal_flash_status() & BUSY_MASK) == 0)
     {
         status = false;
     }
@@ -711,7 +705,7 @@ bool flash_is_busy()
 }
 
 /*************************************************************
- * FUNCTION: flash_block_erase()
+ * FUNCTION: seal_flash_block_erase()
  * -----------------------------------------------------------
  * This function erases an entire block of memory from the 
  * flash device. A block is the minimum size unit that is able
@@ -726,14 +720,14 @@ bool flash_is_busy()
  * Returns:
  *      status          :   Current status of device.
  *************************************************************/
-uint8_t flash_block_erase(uint8_t blockAddress[])
+uint8_t seal_flash_block_erase(uint8_t blockAddress[])
 {
-     volatile uint8_t status = flash_status();
+     volatile uint8_t status = seal_flash_status();
 
     /* If the device is not busy, attempt to program it. */
     if((status & BUSY_MASK) == 0)
     {
-        status = flash_set_WEL();
+        status = seal_flash_set_WEL();
         
         /* Make sure Write Enable flag was set. */
         if((status & WEL_MASK) != 0)
@@ -741,14 +735,14 @@ uint8_t flash_block_erase(uint8_t blockAddress[])
            /* Set SPI buffer to send only 1 byte of command data and
             * 3 bytes for the block address. Put the command in the 
             * output buffer. */
-            flash_setSPI_buffer_size(4);
+            seal_flash_setSPI_buffer_size(4);
             flash_MOSI[0] = ERASE[0];
             flash_MOSI[1] = blockAddress[2];
             flash_MOSI[2] = blockAddress[1];
             flash_MOSI[3] = blockAddress[0];
 
             /* Complete an SPI transaction */
-            flash_spi_transaction();
+            seal_flash_spi_transaction();
             
             /* Reinitialize output buffer and get status. */
             flash_MOSI[0] = 0;
@@ -756,7 +750,7 @@ uint8_t flash_block_erase(uint8_t blockAddress[])
             flash_MOSI[2] = 0;
             flash_MOSI[3] = 0;
             
-            status = flash_status();
+            status = seal_flash_status();
         }            
     }
 
@@ -764,7 +758,7 @@ uint8_t flash_block_erase(uint8_t blockAddress[])
 }
 
 /*************************************************************
- * FUNCTION: flash_erase_device()
+ * FUNCTION: seal_flash_erase_device()
  * -----------------------------------------------------------
  * This function erases the entire flash device except for the
  * first block of data. 
@@ -776,29 +770,27 @@ uint8_t flash_block_erase(uint8_t blockAddress[])
  * Returns:
  *      status          :   Current status of device.
  *************************************************************/
-uint8_t flash_erase_device()
+uint8_t seal_flash_erase_device()
 {
     /* VARIABLE DECLARATIONS */
     int i;                          /* Loop control variable */
     uint32_t address;               /* The micro stores values little endian but is configured to send SPI data big endian */
     uint32_t nextBlock;             /* Amount to increase address by to get to next block */
     uint8_t  status;                /* Value of the status register */
-    uint8_t  tableIndex;            /* The current index of the bad block table */
         
     /* INITIALIZATIONS */
     nextBlock   = 0x40;
     address     = 0x000040;
-    tableIndex  = 0;
         
     /* Iterate through all blocks in both planes */
     for(i = 1; i < NUM_BLOCKS; i++)
     {
         /* Only a single block is able to be erased at any given time. */
         //tempAddress = LitToBigEndian(address);
-        status = flash_block_erase((uint8_t *) &address);
+        status = seal_flash_block_erase((uint8_t *) &address);
         
         /* Wait until device is not busy. */
-        flash_wait_until_not_busy();
+        seal_flash_wait_until_not_busy();
         
         /* Go to next block. */
         address += nextBlock;
@@ -808,7 +800,7 @@ uint8_t flash_erase_device()
 }
 
 /*************************************************************
- * FUNCTION: flash_block_lock_status()
+ * FUNCTION: seal_flash_block_lock_status()
  * -----------------------------------------------------------
  * This function gets the status of the block lock register.
  * The block lock register lists the blocks of the flash 
@@ -821,18 +813,18 @@ uint8_t flash_erase_device()
  * Returns:
  *      status  :   Current status of block lock register.
  *************************************************************/
-uint8_t flash_block_lock_status()
+uint8_t seal_flash_block_lock_status()
 {
     /* Set buffer size to 3 and put command in output buffer:
      *      1 byte of command data
      *      1 byte of address
      *      1 additional byte as we wait to receive data from slave device */
-    flash_setSPI_buffer_size(3);
+    seal_flash_setSPI_buffer_size(3);
     flash_MOSI[0] = GET_BLOCK_LOCK[0];
     flash_MOSI[1] = GET_BLOCK_LOCK[1];
 
     /* Complete an SPI transaction */
-    flash_spi_transaction();
+    seal_flash_spi_transaction();
 
     /* Reinitialize output buffer. */
     flash_MOSI[0] = 0;
@@ -842,7 +834,7 @@ uint8_t flash_block_lock_status()
 }
 
 /*************************************************************
- * FUNCTION: flash_unlock_all_blocks()
+ * FUNCTION: seal_flash_unlock_all_blocks()
  * -----------------------------------------------------------
  * This function unlocks all blocks within the flash device
  * for reading and writing. 
@@ -855,31 +847,31 @@ uint8_t flash_block_lock_status()
  * Returns:
  *      status  :   Current status of block lock register.
  *************************************************************/
-uint8_t flash_unlock_all_blocks()
+uint8_t seal_flash_unlock_all_blocks()
 {	
     /* Set buffer size to 3 and put command in output buffer:
      *      1 byte of command data
      *      1 byte of address
      *      1 additional byte as we wait to receive data from slave device */
-    flash_setSPI_buffer_size(3);
+    seal_flash_setSPI_buffer_size(3);
     flash_MOSI[0] = UNLOCK_BLOCKS[0];
     flash_MOSI[1] = UNLOCK_BLOCKS[1];
     flash_MOSI[2] = UNLOCK_BLOCKS[2];
 
     /* Complete an SPI transaction */
-    flash_spi_transaction();
+    seal_flash_spi_transaction();
 
     /* Reinitialize output buffer. */
     flash_MOSI[0] = 0;
     flash_MOSI[1] = 0;
     flash_MOSI[2] = 0;
     
-    return (flash_block_lock_status());
+    return (seal_flash_block_lock_status());
 }
 
 /* INTERNAL FUNCTIONS - NOT A PART OF API */
 /*************************************************************
- * FUNCTION: program_load()
+ * FUNCTION: seal_program_load()
  * -----------------------------------------------------------
  * This function loads data from the host device into the 
  * memory device's data cache. Only a maximum of PAGE_SIZE
@@ -899,7 +891,7 @@ uint8_t flash_unlock_all_blocks()
  * Returns:
  *      status      :   Current value of the status register.
  *************************************************************/
-uint8_t program_load(uint8_t data[], int dataSize, uint8_t colAddress[])
+uint8_t seal_program_load(uint8_t data[], int dataSize, uint8_t colAddress[])
 {
     int i;  /* Used for indexing the data array */
     int j;  /* Used for indexing the SPI buffer */
@@ -908,7 +900,12 @@ uint8_t program_load(uint8_t data[], int dataSize, uint8_t colAddress[])
      * and a page of data. Put the command in the output buffer. 
      * The plus 3 for the size is to take into account the time it takes
      * to send the actual command. */
-    flash_setSPI_buffer_size(PAGE_SIZE_LESS + 3);
+    if(dataSize > PAGE_SIZE_LESS)
+    {
+        dataSize = PAGE_SIZE_LESS;
+    }
+    
+    seal_flash_setSPI_buffer_size(dataSize + 3);
     flash_MOSI[0] = PROG_LOAD[0];
     flash_MOSI[1] = colAddress[0];
     flash_MOSI[2] = colAddress[1];
@@ -924,16 +921,16 @@ uint8_t program_load(uint8_t data[], int dataSize, uint8_t colAddress[])
     }
 
     /* Complete an SPI transaction */
-    flash_spi_transaction();
+    seal_flash_spi_transaction();
 
     /* De-select device by pulling CS high. */
-    reinitialize_out_buff();
+    seal_reinitialize_out_buff();
 
-    return (flash_status());
+    return (seal_flash_status());
 }
 
 /*************************************************************
- * FUNCTION: execute_program()
+ * FUNCTION: seal_execute_program()
  * -----------------------------------------------------------
  * This function takes data from the memory device's data
  * cache and moves them into the main memory array. This 
@@ -948,19 +945,19 @@ uint8_t program_load(uint8_t data[], int dataSize, uint8_t colAddress[])
  * Returns:
  *      status          :   Value of the status register.
  *************************************************************/
-uint8_t execute_program(uint8_t blockAddress[])
+uint8_t seal_execute_program(uint8_t blockAddress[])
 {
     /* Write the contents of the cache register into the main
      * memory array. Pull chip select high as soon as address is done
      * transmitting. */
-    flash_setSPI_buffer_size(4);
+    seal_flash_setSPI_buffer_size(4);
     flash_MOSI[0] = PEXEC[0];
     flash_MOSI[1] = blockAddress[2];
     flash_MOSI[2] = blockAddress[1];
     flash_MOSI[3] = blockAddress[0];
     
     /* Complete an SPI transaction */
-    flash_spi_transaction();
+    seal_flash_spi_transaction();
 
     /* Reinitialize output buffer. */
     flash_MOSI[0] = 0;
@@ -968,11 +965,11 @@ uint8_t execute_program(uint8_t blockAddress[])
     flash_MOSI[2] = 0;
     flash_MOSI[3] = 0;
 
-    return (flash_status());
+    return (seal_flash_status());
 }
 
 /*************************************************************
- * FUNCTION: reinitialize_out_buff()
+ * FUNCTION: seal_reinitialize_out_buff()
  * -----------------------------------------------------------
  * This function reinitializes the output buffer used in the
  * SPI transactions.
@@ -981,7 +978,7 @@ uint8_t execute_program(uint8_t blockAddress[])
  *
  * Returns: void
  *************************************************************/
-void reinitialize_out_buff()
+void seal_reinitialize_out_buff()
 {
     int i;
     
@@ -993,7 +990,7 @@ void reinitialize_out_buff()
 }
 
 /*************************************************************
- * FUNCTION: page_read()
+ * FUNCTION: seal_page_read()
  * -----------------------------------------------------------
  * This function reads a page of data from the memory device's
  * main memory array and puts it into the data cache. The
@@ -1007,18 +1004,18 @@ void reinitialize_out_buff()
  * Returns:
  *      status              :   Value of the status register.
  *************************************************************/
-uint8_t page_read(uint8_t blockPageAddress[])
+uint8_t seal_page_read(uint8_t blockPageAddress[])
 {
     /* Set SPI buffer to send 1 byte of command data and 3 bytes of address
      * data. Put the command in the output buffer. */
-    flash_setSPI_buffer_size(4);
+    seal_flash_setSPI_buffer_size(4);
     flash_MOSI[0] = PAGE_READ[0];
     flash_MOSI[1] = blockPageAddress[2];
     flash_MOSI[2] = blockPageAddress[1];
     flash_MOSI[3] = blockPageAddress[0];
     
     /* Complete an SPI transaction */
-    flash_spi_transaction();
+    seal_flash_spi_transaction();
         
     /* Reinitialize output buffer and get status again */
     flash_MOSI[0] = 0;
@@ -1026,11 +1023,11 @@ uint8_t page_read(uint8_t blockPageAddress[])
     flash_MOSI[2] = 0;
     flash_MOSI[3] = 0;
     
-    return (flash_status());
+    return (seal_flash_status());
 }    
 
 /**************************************************************
- * FUNCTION: read_from_cache()
+ * FUNCTION: seal_read_from_cache()
  * ------------------------------------------------------------
  * This function reads a page of data from the memory device's
  * data cache and sends it to the host device's input buffer
@@ -1043,20 +1040,20 @@ uint8_t page_read(uint8_t blockPageAddress[])
  * Returns:
  *      status              :   Value of the status register.
  *************************************************************/
- uint8_t read_from_cache(uint8_t columnAddress[], uint8_t pageData[])
+ uint8_t seal_read_from_cache(uint8_t columnAddress[], uint8_t pageData[])
 {
     int i;  /* Used to index the return data array. */
     int j;  /* Used to index the SPI input buffer */
     
     /* Read the data from the cache register to the SPI
      * MISO line. */
-    flash_setSPI_buffer_size(PAGE_SIZE_EXTRA + 3);
+    seal_flash_setSPI_buffer_size(PAGE_SIZE_EXTRA + 3);
     flash_MOSI[0] = READ_CACHE[0];
     flash_MOSI[1] = columnAddress[0];
     flash_MOSI[2] = columnAddress[1];
     
     /* Complete an SPI transaction */
-    flash_spi_transaction();
+    seal_flash_spi_transaction();
         
     /* Reinitialize output buffer and get status again */
     flash_MOSI[0] = 0;
@@ -1070,11 +1067,11 @@ uint8_t page_read(uint8_t blockPageAddress[])
         j++;
     }        
         
-    return (flash_status());
+    return (seal_flash_status());
 }
 
 /**************************************************************
- * FUNCTION: build_bad_block_table()
+ * FUNCTION: seal_build_bad_block_table()
  * ------------------------------------------------------------
  * This function creates a list of bad blocks within the 
  * device. It just keeps track of the addresses that should 
@@ -1087,16 +1084,15 @@ uint8_t page_read(uint8_t blockPageAddress[])
  * Returns:
  *      badCount : Number of bad blocks found in the device.
  *************************************************************/
-uint8_t build_bad_block_table()
+uint8_t seal_build_bad_block_table()
 {
     /* VARIABLE DECLARATIONS */
     int i;                          /* Loop control variable */
     uint32_t address;               /* The micro stores values little endian but is configured to send SPI data big endian */
     uint8_t  badCount;              /* Total number of bad blocks found */
     uint32_t nextBlock;             /* Amount to increase address by to get to next block */
-    uint8_t  page[PAGE_SIZE_EXTRA]; /* Holds a page worth (PAGE_SIZE bytes) of data. */
+    static uint8_t  page[PAGE_SIZE_EXTRA]; /* Holds a page worth (PAGE_SIZE bytes) of data. */
     uint32_t colAddress;            /* Column address for in-page offset */
-    uint8_t  status;                /* Value of the status register */
     uint8_t  tableIndex;            /* The current index of the bad block table */
     
     /* INITIALIZATIONS */
@@ -1111,7 +1107,7 @@ uint8_t build_bad_block_table()
     {
         /* Read the first page of each block. Casts the integer value of the address to an
          * "array" for the Read function. */
-        status = flash_read_page((uint8_t *) &address, (uint8_t *) &colAddress, page);
+        seal_flash_read_page((uint8_t *) &address, (uint8_t *) &colAddress, page);
         
         /* If the first address in the spare area of the first page of a block is not 0xFF,
          * that means it was marked as a bad block and should not be used. */
@@ -1134,7 +1130,7 @@ uint8_t build_bad_block_table()
 }
 
 /**************************************************************
- * FUNCTION: flash_get_superblock()
+ * FUNCTION: seal_flash_get_superblock()
  * ------------------------------------------------------------
  * This function returns the address of the superblock. Only 
  * for testing.
@@ -1144,13 +1140,13 @@ uint8_t build_bad_block_table()
  * Returns:
  *      SUPERBLOCK * : Pointer to the superblock data.
  *************************************************************/
-SUPERBLOCK_t *flash_get_superblock()
+SUPERBLOCK_t *seal_flash_get_superblock()
 {
     return (&superblock);
 }
 
 /*************************************************************
- * FUNCTION: calculate_block_offset()
+ * FUNCTION: seal_calculate_block_offset()
  * -----------------------------------------------------------
  * This function calculates what the "correct" address should
  * be for a given block address based on the bad block table.
@@ -1163,7 +1159,7 @@ SUPERBLOCK_t *flash_get_superblock()
  * Returns:
  *      returnBlockAddress      :   Address after the offset
  *************************************************************/
-uint32_t calculate_block_offset(uint32_t startingBlockAddress)
+uint32_t seal_calculate_block_offset(uint32_t startingBlockAddress)
 {
     uint32_t blockOffsetSize;             /* Amount to increase address by to get to next block. */
     uint32_t returnBlockAddress;    /* Block address plus appropriate offset. */
@@ -1194,7 +1190,7 @@ uint32_t calculate_block_offset(uint32_t startingBlockAddress)
 }
 
 /*************************************************************
- * FUNCTION: flash_spi_transaction()
+ * FUNCTION: seal_flash_spi_transaction()
  * -----------------------------------------------------------
  * This function completes and SPI transaction with the SPI
  * descriptor currently associated with the flash chip(s). The
@@ -1210,14 +1206,53 @@ uint32_t calculate_block_offset(uint32_t startingBlockAddress)
  *
  * Returns: void
  *************************************************************/
-void flash_spi_transaction()
+void seal_flash_spi_transaction()
 {
-    /* Set slave select (CS) active low to communicate. */
-    gpio_set_pin_level(GPIO_PIN(CS),false);
-    
+    if(activeFlashChip == 0)
+    {
+        /* Set slave select to communicate. */
+        gpio_set_pin_level(MEM_CS0, false);
+        gpio_set_pin_level(MEM_CS1, true);
+    }
+    else if(activeFlashChip == 1)
+    {
+        /* Set slave select to communicate. */
+        gpio_set_pin_level(MEM_CS0, true);
+        gpio_set_pin_level(MEM_CS1, false);
+    }
+    else
+    {
+        gpio_set_pin_level(MEM_CS0, true);
+        gpio_set_pin_level(MEM_CS1, true);
+    }
+
     /* Read/write over SPI */
-    spi_m_sync_transfer(&spi_flash, &spi_flash_buff);
+    spi_m_sync_transfer(&SPI_MEMORY, &spi_flash_buff);
     
-    /* De-select device by pulling CS high. */
-    gpio_set_pin_level(GPIO_PIN(CS), true);
+    /* De-select device. */
+    gpio_set_pin_level(MEM_CS0, true);
+    gpio_set_pin_level(MEM_CS1, true);
 }
+
+/*************************************************************
+ * FUNCTION: seal_set_active_chip()
+ * -----------------------------------------------------------
+ * This function sets the active chip to a new value. The 
+ * active value can presently accept values of 0, or 1. 
+ * This value is used to determine which memory chip in the 
+ * system should be written to for all operations. 
+ *
+ * Parameters:
+ *      newActiveChip   :   New chip to select for operations.
+ *
+ * Returns: void
+ *************************************************************/
+void seal_set_active_chip(uint8_t newActiveChip)
+{
+    /* New chip represents an index. Chip 0 is the first chip
+     * to be used. */
+    if(newActiveChip < MAX_NUM_CHIPS)
+    {
+        activeFlashChip = newActiveChip;
+    }
+} 

@@ -146,6 +146,28 @@
 #define CONF_SERCOM_4_SPI_ENABLE 1
 #endif
 
+//<o> SPI DMA TX Channel <0-32>
+//<i> This defines DMA channel to be used
+//<id> spi_master_dma_tx_channel
+#ifndef CONF_SERCOM_4_SPI_M_DMA_TX_CHANNEL
+#define CONF_SERCOM_4_SPI_M_DMA_TX_CHANNEL 0
+#endif
+
+// <e> SPI RX Channel Enable
+// <id> spi_master_rx_channel
+#ifndef CONF_SERCOM_4_SPI_RX_CHANNEL
+#define CONF_SERCOM_4_SPI_RX_CHANNEL 1
+#endif
+
+//<o> DMA Channel <0-32>
+//<i> This defines DMA channel to be used
+//<id> spi_master_dma_rx_channel
+#ifndef CONF_SERCOM_4_SPI_M_DMA_RX_CHANNEL
+#define CONF_SERCOM_4_SPI_M_DMA_RX_CHANNEL 1
+#endif
+
+// </e>
+
 // Set module in SPI Master mode
 #ifndef CONF_SERCOM_4_SPI_MODE
 #define CONF_SERCOM_4_SPI_MODE 0x03
@@ -181,7 +203,7 @@
 // <e> Advanced Configuration
 // <id> spi_master_advanced
 #ifndef CONF_SERCOM_4_SPI_ADVANCED
-#define CONF_SERCOM_4_SPI_ADVANCED 0
+#define CONF_SERCOM_4_SPI_ADVANCED 1
 #endif
 
 // <o> Dummy byte <0x00-0x1ff>

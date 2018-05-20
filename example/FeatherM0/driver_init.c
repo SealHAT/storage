@@ -14,12 +14,13 @@
 #include <hpl_pm_base.h>
 #include <hpl_adc_base.h>
 
-struct crc_sync_descriptor   hash_chk;
-struct spi_m_sync_descriptor spi_flash;
+struct crc_sync_descriptor hash_chk;
 
 struct adc_sync_descriptor analog_in;
 
 struct i2c_m_sync_desc wire;
+
+struct spi_m_dma_descriptor spi_flash;
 
 void analog_in_PORT_init(void)
 {
@@ -58,6 +59,13 @@ void hash_chk_init(void)
 	_pm_enable_bus_clock(PM_BUS_AHB, DSU);
 	_pm_enable_bus_clock(PM_BUS_APBB, PAC1);
 	crc_sync_init(&hash_chk, DSU);
+}
+
+void EXTERNAL_IRQ_0_init(void)
+{
+	_gclk_enable_channel(EIC_GCLK_ID, CONF_GCLK_EIC_SRC);
+
+	ext_irq_init();
 }
 
 void wire_PORT_init(void)
@@ -148,7 +156,7 @@ void spi_flash_CLOCK_init(void)
 void spi_flash_init(void)
 {
 	spi_flash_CLOCK_init();
-	spi_m_sync_init(&spi_flash, SERCOM4);
+	spi_m_dma_init(&spi_flash, SERCOM4);
 	spi_flash_PORT_init();
 }
 
@@ -319,6 +327,7 @@ void system_init(void)
 
 	analog_in_init();
 	hash_chk_init();
+	EXTERNAL_IRQ_0_init();
 
 	wire_init();
 

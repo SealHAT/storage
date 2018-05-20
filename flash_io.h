@@ -12,17 +12,14 @@
 #include "NAND_Flash.h"
 
 #define BUF_0       (0)     /* Buffer zero of the ping-pong buffer. */
-#define BUF_1       (1)     /* Buffer one of the ping-pong buffer. */
 
 /* Struct containing page data buffer, page size, and a count for the number of buffer bytes to use. 
  * Instantiate only a single descriptor in the main driving program. */
 typedef struct 
 {
-    uint8_t buf_0[PAGE_SIZE_EXTRA];     /* Buffer for holding a page worth of data. Buffer 0 of the ping-pong buffer. */
-    uint8_t buf_1[PAGE_SIZE_EXTRA];     /* Buffer for holding a page worth of data. Buffer 1 of the ping-pong buffer. */
+    uint8_t buf_0[PAGE_SIZE_EXTRA];     /* Buffer for holding a page worth of data. */
     int     buffer_index;               /* Current read/write index of active buffer. */
     int     PAGE_SIZE;                  /* Size of page that user will see (should not include extra space bits). */
-    int     active_buffer;              /* Keeps track of which buffer in the ping-pong buffer is currently in use. */
 }FLASH_DESCRIPTOR;
 
 /* THIS STRUCT IS FOR INTERNAL PROCESSING ONLY - DO NOT INSTANTIATE ANYWHERE ELSE. */
@@ -33,8 +30,8 @@ typedef struct
     uint8_t  currentChipInUse;                  /* Which chip is currently in use. [0, numChips-1]. Will be initialized to 0. */
 } FLASH_ADDRESS_DESCRIPTOR;
 
-/* THIS STRUCT IS FOR INTERNAL PROCESSING ONLY - DO NOT INSTANTIATE ANYWHERE ELSE. */
-extern FLASH_ADDRESS_DESCRIPTOR flash_address;
+/* Global flag for determining when the flash is completely full. */
+extern bool FLASH_IS_FULL;
 
 /*************************************************************
  * FUNCTION: flash_io_init()
@@ -130,5 +127,14 @@ uint32_t get_next_address();
  * device.
  *************************************************************/
 void reset_address_info();
+
+/*************************************************************
+ * FUNCTION: switch_flash_chips()
+ * -----------------------------------------------------------
+ * This function switches to the next available flash chip and
+ * sets the address pointer to the first user-addressable 
+ * space.
+ *************************************************************/
+void switch_flash_chips();
 
 #endif /* FLASH_IO_H_ */

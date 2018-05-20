@@ -11,7 +11,7 @@
 #include "usb_start.h"
 #include "NAND_Flash.h"
 
-#define TEST_DATA_SIZE      (10240)  /* 5 pages (2048 * 5) */
+#define TEST_DATA_SIZE      (2048)  /* 5 pages (2048 * 5) */
 #define NUM_TEST_BLOCKS     (5)   /* Number of blocks to write data to total. */
 
  /*************************************************************
@@ -39,7 +39,7 @@ extern char NEW_LINE; */
  * be edited in the define above as well as in the script that
  * generates these values.
  **************************************************************/ 
-extern uint8_t TEST_DATA[TEST_DATA_SIZE];
+//extern uint8_t TEST_DATA[TEST_DATA_SIZE];
 
 uint8_t nand_test_driver();
 

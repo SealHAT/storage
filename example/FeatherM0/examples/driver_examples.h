@@ -16,7 +16,11 @@ void analog_in_example(void);
 
 void hash_chk_example(void);
 
+void EXTERNAL_IRQ_0_example(void);
+
 void wire_example(void);
+
+void spi_flash_example(void);
 
 void delay_example(void);
 
