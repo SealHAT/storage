@@ -302,9 +302,6 @@ void seal_flash_initSPI()
     spi_flash_buff.size  = NAND_BUFFER_SIZE;
     spi_flash_buff.rxbuf = flash_MISO;
     spi_flash_buff.txbuf = flash_MOSI;
-    
-    /* Set active chip. */
-    seal_set_active_chip(0);
 
     /* Setup SPI IO */
 	/* Set clock mode and enable SPI */

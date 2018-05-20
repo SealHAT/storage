@@ -34,9 +34,9 @@ void flash_io_init(FLASH_DESCRIPTOR *fd, int page_size)
     /* Initialize the external flash device(s). */
     while(i < MAX_NUM_CHIPS)
     {
+        seal_set_active_chip(i);
         seal_flash_init();
         seal_flash_erase_device();
-        seal_set_active_chip(i);
         i++;
     }
     
