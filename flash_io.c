@@ -2,7 +2,7 @@
  * flash_io.c
  *
  * Created: 4/16/2018 3:10:23 PM
- *  Author: kmcarrin
+ *  Author: Krystine
  */ 
 
 #include "flash_io.h"
@@ -42,6 +42,7 @@ void flash_io_init(FLASH_DESCRIPTOR *fd, int page_size)
     
     /* Set the active chip back to chip 0. */
     seal_set_active_chip(0);
+    flash_address.totalPagesWritten = 0;
     
     /* Initialize the buffer index to 0. */
     fd->buffer_index = 0;
@@ -161,6 +162,7 @@ uint32_t flash_io_write(FLASH_DESCRIPTOR *fd, uint8_t *buf, size_t count)
                 /* Flush data if device is not busy. */
                 if(flash_io_is_busy() == false) {
                     status = seal_flash_write(flash_address.currentAddress, 0x00, fd->buf_0, PAGE_SIZE_LESS);
+                    flash_address.totalPagesWritten++;
                 } else {
                     failed = true;
                 }
@@ -238,6 +240,7 @@ void flash_io_flush(FLASH_DESCRIPTOR *fd)
         /* Flush data if device is not busy. */
         if(flash_io_is_busy() == false) {
             status = seal_flash_write(flash_address.currentAddress, 0x00, fd->buf_0, fd->buffer_index);
+            flash_address.totalPagesWritten++;
         } else {
             failed = true;
         }
@@ -395,7 +398,8 @@ uint32_t get_next_address() {
  *************************************************************/
 void reset_address_info()
 {
-    /* Initialize the address descriptor. Initialize block address to block 1 (after the superblock). */
+    /* Initialize the address descriptor. Initialize block address 
+     * to block 1 (after the superblock). */
     flash_address.currentAddress   = 0x40;
     flash_address.nextAddress      = 0x40;
     flash_address.currentChipInUse = 0x00;
@@ -423,4 +427,20 @@ void switch_flash_chips()
     /* Set address pointer to beginning of new flash chip. */
     flash_address.currentAddress   = 0x40;
     flash_address.nextAddress      = 0x40;
+}
+
+/*************************************************************
+ * FUNCTION: num_pages_written()
+ * -----------------------------------------------------------
+ * This function returns the total number of pages currently
+ * written to flash.
+ *
+ * Parameters: none
+ *
+ * Returns:
+ *      The total number of pages written in external flash.
+ *************************************************************/
+uint32_t num_pages_written()
+{
+    return (flash_address.totalPagesWritten);
 }

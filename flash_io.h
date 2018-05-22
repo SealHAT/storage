@@ -25,9 +25,10 @@ typedef struct
 /* THIS STRUCT IS FOR INTERNAL PROCESSING ONLY - DO NOT INSTANTIATE ANYWHERE ELSE. */
 typedef struct
 {
-    uint32_t currentAddress;                    /* Address currently being written or read to/from. Updated after operation. */
-    uint32_t nextAddress;                       /* Address that should be used next. Updated before operation. */
-    uint8_t  currentChipInUse;                  /* Which chip is currently in use. [0, numChips-1]. Will be initialized to 0. */
+    uint32_t currentAddress;            /* Address currently being written or read to/from. Updated after operation. */
+    uint32_t nextAddress;               /* Address that should be used next. Updated before operation. */
+    uint8_t  currentChipInUse;          /* Which chip is currently in use. [0, numChips-1]. Will be initialized to 0. */
+    uint32_t totalPagesWritten;         /* Total number of pages written during deployment. */
 } FLASH_ADDRESS_DESCRIPTOR;
 
 /* Global flag for determining when the flash is completely full. */
@@ -136,5 +137,13 @@ void reset_address_info();
  * space.
  *************************************************************/
 void switch_flash_chips();
+
+/*************************************************************
+ * FUNCTION: num_pages_written()
+ * -----------------------------------------------------------
+ * This function returns the total number of pages currently
+ * written to flash.
+ *************************************************************/
+uint32_t num_pages_written();
 
 #endif /* FLASH_IO_H_ */
