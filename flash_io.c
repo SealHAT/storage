@@ -9,7 +9,6 @@
 
 /* GLOBALS */
 static FLASH_ADDRESS_DESCRIPTOR flash_address;
-bool FLASH_IS_FULL;
 
 /*************************************************************
  * FUNCTION: flash_io_init()
@@ -27,9 +26,6 @@ bool FLASH_IS_FULL;
 void flash_io_init(FLASH_DESCRIPTOR *fd, int page_size)
 {
     int i = 0;  /* Loop control variable. */
-    
-    /* Will be true after all memory is filled */
-    FLASH_IS_FULL = false;
     
     /* Initialize the external flash device(s). */
     while(i < MAX_NUM_CHIPS)
@@ -306,7 +302,7 @@ uint32_t update_next_address() {
         else
         {
             /* Device out of space! Set global flag. */
-            FLASH_IS_FULL = true;
+            xEventGroupSetBits(xCTRL_eg, EVENT_FLASH_FULL);
         }
     } 
     else
@@ -343,7 +339,7 @@ uint32_t update_current_address() {
         else
         {
             /* Device out of space! Set global flag. */
-            FLASH_IS_FULL = true;
+            xEventGroupSetBits(xCTRL_eg, EVENT_FLASH_FULL);
         }
     }
     else

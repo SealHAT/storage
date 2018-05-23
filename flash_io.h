@@ -10,8 +10,7 @@
 #define FLASH_IO_H_
 
 #include "NAND_Flash.h"
-
-#define BUF_0       (0)     /* Buffer zero of the ping-pong buffer. */
+#include "seal_RTOS.h"
 
 /* Struct containing page data buffer, page size, and a count for the number of buffer bytes to use. 
  * Instantiate only a single descriptor in the main driving program. */
@@ -30,9 +29,6 @@ typedef struct
     uint8_t  currentChipInUse;          /* Which chip is currently in use. [0, numChips-1]. Will be initialized to 0. */
     uint32_t totalPagesWritten;         /* Total number of pages written during deployment. */
 } FLASH_ADDRESS_DESCRIPTOR;
-
-/* Global flag for determining when the flash is completely full. */
-extern bool FLASH_IS_FULL;
 
 /*************************************************************
  * FUNCTION: flash_io_init()
