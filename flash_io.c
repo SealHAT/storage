@@ -302,7 +302,7 @@ uint32_t update_next_address() {
         else
         {
             /* Device out of space! Set global flag. */
-            xEventGroupSetBits(xCTRL_eg, EVENT_FLASH_FULL);
+            xEventGroupSetBits(xSYSEVENTS_handle, EVENT_FLASH_FULL);
         }
     } 
     else
@@ -339,7 +339,7 @@ uint32_t update_current_address() {
         else
         {
             /* Device out of space! Set global flag. */
-            xEventGroupSetBits(xCTRL_eg, EVENT_FLASH_FULL);
+            xEventGroupSetBits(xSYSEVENTS_handle, EVENT_FLASH_FULL);
         }
     }
     else
