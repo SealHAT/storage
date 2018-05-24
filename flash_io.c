@@ -302,7 +302,7 @@ uint32_t update_next_address() {
         else
         {
             /* Device out of space! Set global flag. */
-            xEventGroupSetBits(xCTRL_eg, EVENT_FLASH_FULL);
+            xEventGroupSetBits(xSYSEVENTS_handle, EVENT_FLASH_FULL);
         }
     } 
     else
@@ -326,7 +326,10 @@ uint32_t update_next_address() {
  * Returns:
  *      address	: Updated address.
  *************************************************************/
-uint32_t update_current_address() {
+uint32_t update_current_address() 
+{
+    uint32_t retVal;
+        
     /* Check if block out of main array. */
     if(seal_calculate_block_offset(flash_address.currentAddress) >= NUM_BLOCKS)
     {
@@ -339,7 +342,7 @@ uint32_t update_current_address() {
         else
         {
             /* Device out of space! Set global flag. */
-            xEventGroupSetBits(xCTRL_eg, EVENT_FLASH_FULL);
+            xEventGroupSetBits(xSYSEVENTS_handle, EVENT_FLASH_FULL);
         }
     }
     else
@@ -347,6 +350,17 @@ uint32_t update_current_address() {
         flash_address.currentAddress++;
     }
 
+    /* Flash must be erased before a new value may be written to it. */
+    //TODO: fix gross addressing here
+    retVal = flash_erase(&FLASH_NVM, (CONFIG_BLOCK_BASE_ADDR + sizeof(SENSOR_CONFIGS)), (sizeof(flash_address.currentAddress) + sizeof(flash_address.currentChipInUse)));
+    
+    /* Write out new current address to EEPROM. */
+    if(retVal == ERR_NONE)
+    {   //TODO: fix gross addressing here
+        retVal = flash_write(&FLASH_NVM, (CONFIG_BLOCK_BASE_ADDR + sizeof(SENSOR_CONFIGS)), (uint8_t *) flash_address.currentAddress, sizeof(flash_address.currentAddress));
+        retVal = flash_write(&FLASH_NVM, (CONFIG_BLOCK_BASE_ADDR + sizeof(SENSOR_CONFIGS) + sizeof(flash_address.currentAddress)), (uint8_t *) flash_address.currentChipInUse, sizeof(flash_address.currentChipInUse));
+    }
+    
     return (flash_address.currentAddress);
 }
 
