@@ -48,6 +48,19 @@ void flash_io_init(FLASH_DESCRIPTOR *fd, int page_size)
     
     /* Initialize the address descriptor. */
     flash_io_reset_addr();
+    
+    /* Write out flash address  
+    eeprom_data.current_flash_addr = flash_address.currentAddress;
+    eeprom_data.current_flash_chip = flash_address.currentChipInUse;
+    
+    retVal = flash_erase(&FLASH_NVM, CONFIG_BLOCK_BASE_ADDR, sizeof(eeprom_data));
+
+     Write out new current address to EEPROM. 
+    if(retVal == ERR_NONE)
+    {
+        retVal = flash_write(&FLASH_NVM, CONFIG_BLOCK_BASE_ADDR, (uint8_t *) &eeprom_data, sizeof(eeprom_data));
+    }
+    */
 }
 
 /*************************************************************
@@ -351,14 +364,15 @@ uint32_t update_current_address()
     }
 
     /* Flash must be erased before a new value may be written to it. */
-    //TODO: fix gross addressing here
-    retVal = flash_erase(&FLASH_NVM, (CONFIG_BLOCK_BASE_ADDR + sizeof(SENSOR_CONFIGS)), (sizeof(flash_address.currentAddress) + sizeof(flash_address.currentChipInUse)));
+    eeprom_data.current_flash_addr = flash_address.currentAddress;
+    eeprom_data.current_flash_chip = flash_address.currentChipInUse;
     
+    retVal = flash_erase(&FLASH_NVM, CONFIG_BLOCK_BASE_ADDR, sizeof(eeprom_data));
+
     /* Write out new current address to EEPROM. */
     if(retVal == ERR_NONE)
-    {   //TODO: fix gross addressing here
-        retVal = flash_write(&FLASH_NVM, (CONFIG_BLOCK_BASE_ADDR + sizeof(SENSOR_CONFIGS)), (uint8_t *) flash_address.currentAddress, sizeof(flash_address.currentAddress));
-        retVal = flash_write(&FLASH_NVM, (CONFIG_BLOCK_BASE_ADDR + sizeof(SENSOR_CONFIGS) + sizeof(flash_address.currentAddress)), (uint8_t *) flash_address.currentChipInUse, sizeof(flash_address.currentChipInUse));
+    {
+        retVal = flash_write(&FLASH_NVM, CONFIG_BLOCK_BASE_ADDR, (uint8_t *) &eeprom_data, sizeof(eeprom_data));
     }
     
     return (flash_address.currentAddress);
