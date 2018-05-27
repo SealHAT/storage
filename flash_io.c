@@ -25,7 +25,8 @@ static FLASH_ADDRESS_DESCRIPTOR flash_address;
  *************************************************************/
 void flash_io_init(FLASH_DESCRIPTOR *fd, int page_size)
 {
-    int i = 0;  /* Loop control variable. */
+    uint32_t retVal;    /* Return value for EEPROM erase/write operations. */
+    int i = 0;          /* Loop control variable. */
     
     /* Initialize the external flash device(s). */
     while(i < MAX_NUM_CHIPS)
@@ -49,18 +50,18 @@ void flash_io_init(FLASH_DESCRIPTOR *fd, int page_size)
     /* Initialize the address descriptor. */
     flash_io_reset_addr();
     
-    /* Write out flash address  
+    /* Write out flash address. */
     eeprom_data.current_flash_addr = flash_address.currentAddress;
     eeprom_data.current_flash_chip = flash_address.currentChipInUse;
     
     retVal = flash_erase(&FLASH_NVM, CONFIG_BLOCK_BASE_ADDR, sizeof(eeprom_data));
 
-     Write out new current address to EEPROM. 
+    /* Write out new current address to EEPROM. */
     if(retVal == ERR_NONE)
     {
         retVal = flash_write(&FLASH_NVM, CONFIG_BLOCK_BASE_ADDR, (uint8_t *) &eeprom_data, sizeof(eeprom_data));
     }
-    */
+    
 }
 
 /*************************************************************
