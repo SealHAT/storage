@@ -13,22 +13,22 @@
  */
 
 /* CONSTANT DECLARATIONS */
-const uint8_t RESET[1]               = {0xFF};                   /* Command to reset the memory device */
-const uint8_t GET_FEAT[2]            = {0x0F, 0xC0};             /* Command to get the current contents of the status register */
-const uint8_t SET_WEL[1]             = {0x06};                   /* Command to set the write enable bit in in the status register */
-const uint8_t PROG_LOAD[3]           = {0x02, 0x00, 0x00};       /* Command to load data from micro into cache of memory device. Last 2 bytes page column address */
-const uint8_t PEXEC[4]               = {0x10, 0x00, 0x00, 0x00}; /* Command to program the main memory array from the memory devices cache register */
-const uint8_t PAGE_READ[4]           = {0x13, 0x00, 0x00, 0x10}; /* Command to read data from main array into data cache */
-const uint8_t READ_CACHE[3]          = {0x03, 0x00, 0x00};       /* Command to read data from memory device cache to SPI buffer */
-const uint8_t ERASE[1]               = {0xD8};                   /* Command to erase a block of data  */
-const uint8_t GET_BLOCK_LOCK[2]      = {0x0F, 0xA0};             /* Command to check the block lock status */
-const uint8_t UNLOCK_BLOCKS[3]       = {0x1F, 0xA0, 0x00};       /* Command to check the block lock status */
+static uint8_t RESET[1]               = {0xFF};                   /* Command to reset the memory device */
+static uint8_t GET_FEAT[2]            = {0x0F, 0xC0};             /* Command to get the current contents of the status register */
+static uint8_t SET_WEL[1]             = {0x06};                   /* Command to set the write enable bit in in the status register */
+static uint8_t PROG_LOAD[3]           = {0x02, 0x00, 0x00};       /* Command to load data from micro into cache of memory device. Last 2 bytes page column address */
+static uint8_t PEXEC[4]               = {0x10, 0x00, 0x00, 0x00}; /* Command to program the main memory array from the memory devices cache register */
+static uint8_t PAGE_READ[4]           = {0x13, 0x00, 0x00, 0x10}; /* Command to read data from main array into data cache */
+static uint8_t READ_CACHE[3]          = {0x03, 0x00, 0x00};       /* Command to read data from memory device cache to SPI buffer */
+static uint8_t ERASE[1]               = {0xD8};                   /* Command to erase a block of data  */
+static uint8_t GET_BLOCK_LOCK[2]      = {0x0F, 0xA0};             /* Command to check the block lock status */
+static uint8_t UNLOCK_BLOCKS[3]       = {0x1F, 0xA0, 0x00};       /* Command to check the block lock status */
 
 /* MASKS */
-const uint8_t BUSY_MASK              = 0x01;                     /* Mask for checking if the flash is busy */
-const uint8_t PROG_FAIL              = 0b00001000;               /* Mask for checking if the memory was programmed successfully */
-const uint8_t WEL_MASK               = 0x02;                     /* Mask for checking if write enable is high */
-const char SIGNATURE[SIGNATURE_SIZE] = "SealHAT!";
+uint8_t BUSY_MASK                     = 0x01;                     /* Mask for checking if the flash is busy */
+uint8_t PROG_FAIL                     = 0b00001000;               /* Mask for checking if the memory was programmed successfully */
+uint8_t WEL_MASK                      = 0x02;                     /* Mask for checking if write enable is high */
+char SIGNATURE[SIGNATURE_SIZE] = "SealHAT!";
 
 uint32_t badBlockTable[MAX_BAD_BLOCKS];
 

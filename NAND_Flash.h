@@ -35,9 +35,7 @@
 #define NUM_BLOCKS          (2048)              /* Maximum number of blocks within the device */
 #define PAGES_PER_BLOCK     (64)                /* Number of pages within each block of a device */
 #define MAX_NUM_CHIPS       (2)                 /* Update this value to match however many flash chips the system uses. */
-
 #define SIGNATURE_SIZE      (8)                 /* The signature in the superblock is 8 bytes long */
-extern const char SIGNATURE[SIGNATURE_SIZE];
 
 typedef struct 
 {
@@ -47,22 +45,10 @@ typedef struct
     uint8_t   badBlockIndex;                    /* Keeps track of next bad block to look out for. */
 } SUPERBLOCK_t;
 
-/* CONSTANT DECLARATIONS */
-extern const uint8_t RESET[1];                  /* Command to reset the memory device */
-extern const uint8_t GET_FEAT[2];               /* Command to get the current contents of the status register */
-extern const uint8_t SET_WEL[1];                /* Command to set the write enable bit in in the status register */
-extern const uint8_t PROG_LOAD[3];              /* Command to load data from micro into cache of memory device. Last 2 bytes page column address */
-extern const uint8_t PEXEC[4];                  /* Command to program the main memory array from the memory devices cache register */
-extern const uint8_t PAGE_READ[4];              /* Command to read data from main array into data cache */
-extern const uint8_t READ_CACHE[3];             /* Command to read data from memory device cache to SPI buffer */
-extern const uint8_t ERASE[1];                  /* Command to erase a block of data */
-extern const uint8_t GET_BLOCK_LOCK[2];         /* Command to check the block lock status */
-extern const uint8_t UNLOCK_BLOCKS[3];          /* Command to check the block lock status */
-
 /* MASKS */
-extern const uint8_t BUSY_MASK;                 /* Mask for checking if the flash is busy */
-extern const uint8_t PROG_FAIL;                 /* Mask for checking if the memory was programmed successfully */
-extern const uint8_t WEL_MASK;                  /* Mask for checking if write enable is high */
+extern uint8_t BUSY_MASK;                       /* Mask for checking if the flash is busy */
+extern uint8_t PROG_FAIL;                       /* Mask for checking if the memory was programmed successfully */
+extern uint8_t WEL_MASK;                        /* Mask for checking if write enable is high */
 
 /* SPI COMMUNICATION BUFFERS */
 extern struct  spi_xfer spi_flash_buff;         /* SPI transfer descriptor */
