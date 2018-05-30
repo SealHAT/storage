@@ -35,8 +35,9 @@ uint32_t badBlockTable[MAX_BAD_BLOCKS];
 static uint8_t buf[PAGE_SIZE_EXTRA];                             /* Holds a page worth (PAGE_SIZE bytes) of data. */
 
 /* SPI COMMUNICATION BUFFERS */
-uint8_t flash_MOSI[NAND_BUFFER_SIZE];                            /* Master's output buffer */
-uint8_t flash_MISO[NAND_BUFFER_SIZE];                            /* Master's input buffer */
+uint8_t seal_flash_SPI_buf[NAND_BUFFER_SIZE];
+//uint8_t flash_MOSI[NAND_BUFFER_SIZE];                            /* Master's output buffer */
+//uint8_t flash_MISO[NAND_BUFFER_SIZE];                            /* Master's input buffer */
 struct  spi_xfer spi_flash_buff;                                 /* SPI transfer descriptor */
 uint8_t activeFlashChip;                                         /* Current active flash chip. Currently supports up to three chips, with the value 00 being all chips deselected. */
 
@@ -304,8 +305,8 @@ void seal_flash_initSPI()
 	/* Associate flash buffers with SPI device and set
      * buffer size. */
     spi_flash_buff.size  = NAND_BUFFER_SIZE;
-    spi_flash_buff.rxbuf = flash_MISO;
-    spi_flash_buff.txbuf = flash_MOSI;
+    spi_flash_buff.rxbuf = seal_flash_SPI_buf;
+    spi_flash_buff.txbuf = seal_flash_SPI_buf;
 
     /* Setup SPI IO */
 	/* Set clock mode and enable SPI */
@@ -335,8 +336,8 @@ void seal_flash_init_buffers()
 	/* Initialize input and output buffers */
 	for(i = 0; i < NAND_BUFFER_SIZE; i++)
 	{
-		flash_MISO[i] = 0xFF;
-		flash_MOSI[i] = 0x00;
+		seal_flash_SPI_buf[i] = 0xFF;
+		seal_flash_SPI_buf[i] = 0x00;
 	}
 }
 
@@ -405,13 +406,13 @@ uint8_t seal_flash_reset()
         /* Set SPI buffer to send only 1 byte of command data. 
          * Put the command in the output buffer. */
         seal_flash_setSPI_buffer_size(1);
-        flash_MOSI[0] = RESET[0];
+        seal_flash_SPI_buf[0] = RESET[0];
 
         /* Complete an SPI transaction */
         seal_flash_spi_transaction();
 
         /* Reinitialize output buffer. */
-        flash_MOSI[0] = 0;
+        seal_flash_SPI_buf[0] = 0;
 
         /* Get updated status. */
         status = seal_flash_status();
@@ -439,17 +440,17 @@ uint8_t seal_flash_status()
      *      1 byte of address
      *      1 additional byte as we wait to receive data from slave device */
     seal_flash_setSPI_buffer_size(3);
-    flash_MOSI[0] = GET_FEAT[0];
-    flash_MOSI[1] = GET_FEAT[1];
+    seal_flash_SPI_buf[0] = GET_FEAT[0];
+    seal_flash_SPI_buf[1] = GET_FEAT[1];
 
     /* Complete an SPI transaction */
     seal_flash_spi_transaction();
 
     /* Reinitialize output buffer. */
-    flash_MOSI[0] = 0;
-    flash_MOSI[1] = 0;
+    seal_flash_SPI_buf[0] = 0;
+    seal_flash_SPI_buf[1] = 0;
 
-    return (flash_MISO[2]);
+    return (seal_flash_SPI_buf[2]);
 }
 
 /*************************************************************
@@ -478,13 +479,13 @@ uint8_t seal_flash_set_WEL()
         /* Set SPI buffer to send only 1 byte of command data. 
          * Put the command in the output buffer. */
         seal_flash_setSPI_buffer_size(1);
-        flash_MOSI[0] = SET_WEL[0];	
+        seal_flash_SPI_buf[0] = SET_WEL[0];	
 	
         /* Complete an SPI transaction */
         seal_flash_spi_transaction();
 
         /* Reinitialize output buffer. */
-        flash_MOSI[0] = SET_WEL[0];
+        seal_flash_SPI_buf[0] = SET_WEL[0];
 
         status = seal_flash_status();
     }
@@ -744,19 +745,19 @@ uint8_t seal_flash_block_erase(uint8_t blockAddress[])
             * 3 bytes for the block address. Put the command in the 
             * output buffer. */
             seal_flash_setSPI_buffer_size(4);
-            flash_MOSI[0] = ERASE[0];
-            flash_MOSI[1] = blockAddress[2];
-            flash_MOSI[2] = blockAddress[1];
-            flash_MOSI[3] = blockAddress[0];
+            seal_flash_SPI_buf[0] = ERASE[0];
+            seal_flash_SPI_buf[1] = blockAddress[2];
+            seal_flash_SPI_buf[2] = blockAddress[1];
+            seal_flash_SPI_buf[3] = blockAddress[0];
 
             /* Complete an SPI transaction */
             seal_flash_spi_transaction();
             
             /* Reinitialize output buffer and get status. */
-            flash_MOSI[0] = 0;
-            flash_MOSI[1] = 0;
-            flash_MOSI[2] = 0;
-            flash_MOSI[3] = 0;
+            seal_flash_SPI_buf[0] = 0;
+            seal_flash_SPI_buf[1] = 0;
+            seal_flash_SPI_buf[2] = 0;
+            seal_flash_SPI_buf[3] = 0;
             
             status = seal_flash_status();
         }            
@@ -828,17 +829,17 @@ uint8_t seal_flash_block_lock_status()
      *      1 byte of address
      *      1 additional byte as we wait to receive data from slave device */
     seal_flash_setSPI_buffer_size(3);
-    flash_MOSI[0] = GET_BLOCK_LOCK[0];
-    flash_MOSI[1] = GET_BLOCK_LOCK[1];
+    seal_flash_SPI_buf[0] = GET_BLOCK_LOCK[0];
+    seal_flash_SPI_buf[1] = GET_BLOCK_LOCK[1];
 
     /* Complete an SPI transaction */
     seal_flash_spi_transaction();
 
     /* Reinitialize output buffer. */
-    flash_MOSI[0] = 0;
-    flash_MOSI[1] = 0;
+    seal_flash_SPI_buf[0] = 0;
+    seal_flash_SPI_buf[1] = 0;
 
-    return (flash_MISO[2]);    
+    return (seal_flash_SPI_buf[2]);    
 }
 
 /*************************************************************
@@ -862,17 +863,17 @@ uint8_t seal_flash_unlock_all_blocks()
      *      1 byte of address
      *      1 additional byte as we wait to receive data from slave device */
     seal_flash_setSPI_buffer_size(3);
-    flash_MOSI[0] = UNLOCK_BLOCKS[0];
-    flash_MOSI[1] = UNLOCK_BLOCKS[1];
-    flash_MOSI[2] = UNLOCK_BLOCKS[2];
+    seal_flash_SPI_buf[0] = UNLOCK_BLOCKS[0];
+    seal_flash_SPI_buf[1] = UNLOCK_BLOCKS[1];
+    seal_flash_SPI_buf[2] = UNLOCK_BLOCKS[2];
 
     /* Complete an SPI transaction */
     seal_flash_spi_transaction();
 
     /* Reinitialize output buffer. */
-    flash_MOSI[0] = 0;
-    flash_MOSI[1] = 0;
-    flash_MOSI[2] = 0;
+    seal_flash_SPI_buf[0] = 0;
+    seal_flash_SPI_buf[1] = 0;
+    seal_flash_SPI_buf[2] = 0;
     
     return (seal_flash_block_lock_status());
 }
@@ -914,9 +915,9 @@ uint8_t seal_program_load(uint8_t data[], int dataSize, uint8_t colAddress[])
     }
     
     seal_flash_setSPI_buffer_size(dataSize + 3);
-    flash_MOSI[0] = PROG_LOAD[0];
-    flash_MOSI[1] = colAddress[0];
-    flash_MOSI[2] = colAddress[1];
+    seal_flash_SPI_buf[0] = PROG_LOAD[0];
+    seal_flash_SPI_buf[1] = colAddress[0];
+    seal_flash_SPI_buf[2] = colAddress[1];
 
     /* Fill up to an entire page of data. If less data is passed in,
      * a full page of data will still be sent, but the remainder of the
@@ -924,7 +925,7 @@ uint8_t seal_program_load(uint8_t data[], int dataSize, uint8_t colAddress[])
     j = 3;
     for(i = 0; (i < dataSize) && (i < PAGE_SIZE_LESS); i++)
     {
-        flash_MOSI[j] = data[i];
+        seal_flash_SPI_buf[j] = data[i];
         j++;
     }
 
@@ -959,19 +960,19 @@ uint8_t seal_execute_program(uint8_t blockAddress[])
      * memory array. Pull chip select high as soon as address is done
      * transmitting. */
     seal_flash_setSPI_buffer_size(4);
-    flash_MOSI[0] = PEXEC[0];
-    flash_MOSI[1] = blockAddress[2];
-    flash_MOSI[2] = blockAddress[1];
-    flash_MOSI[3] = blockAddress[0];
+    seal_flash_SPI_buf[0] = PEXEC[0];
+    seal_flash_SPI_buf[1] = blockAddress[2];
+    seal_flash_SPI_buf[2] = blockAddress[1];
+    seal_flash_SPI_buf[3] = blockAddress[0];
     
     /* Complete an SPI transaction */
     seal_flash_spi_transaction();
 
     /* Reinitialize output buffer. */
-    flash_MOSI[0] = 0;
-    flash_MOSI[1] = 0;
-    flash_MOSI[2] = 0;
-    flash_MOSI[3] = 0;
+    seal_flash_SPI_buf[0] = 0;
+    seal_flash_SPI_buf[1] = 0;
+    seal_flash_SPI_buf[2] = 0;
+    seal_flash_SPI_buf[3] = 0;
 
     return (seal_flash_status());
 }
@@ -993,7 +994,7 @@ void seal_reinitialize_out_buff()
     /* Initialize input and output buffers */
     for(i = 0; i < NAND_BUFFER_SIZE; i++)
     {
-        flash_MOSI[i] = 0x00;
+        seal_flash_SPI_buf[i] = 0x00;
     }
 }
 
@@ -1017,19 +1018,19 @@ uint8_t seal_page_read(uint8_t blockPageAddress[])
     /* Set SPI buffer to send 1 byte of command data and 3 bytes of address
      * data. Put the command in the output buffer. */
     seal_flash_setSPI_buffer_size(4);
-    flash_MOSI[0] = PAGE_READ[0];
-    flash_MOSI[1] = blockPageAddress[2];
-    flash_MOSI[2] = blockPageAddress[1];
-    flash_MOSI[3] = blockPageAddress[0];
+    seal_flash_SPI_buf[0] = PAGE_READ[0];
+    seal_flash_SPI_buf[1] = blockPageAddress[2];
+    seal_flash_SPI_buf[2] = blockPageAddress[1];
+    seal_flash_SPI_buf[3] = blockPageAddress[0];
     
     /* Complete an SPI transaction */
     seal_flash_spi_transaction();
         
     /* Reinitialize output buffer and get status again */
-    flash_MOSI[0] = 0;
-    flash_MOSI[1] = 0;
-    flash_MOSI[2] = 0;
-    flash_MOSI[3] = 0;
+    seal_flash_SPI_buf[0] = 0;
+    seal_flash_SPI_buf[1] = 0;
+    seal_flash_SPI_buf[2] = 0;
+    seal_flash_SPI_buf[3] = 0;
     
     return (seal_flash_status());
 }    
@@ -1056,22 +1057,22 @@ uint8_t seal_page_read(uint8_t blockPageAddress[])
     /* Read the data from the cache register to the SPI
      * MISO line. */
     seal_flash_setSPI_buffer_size(PAGE_SIZE_EXTRA + 3);
-    flash_MOSI[0] = READ_CACHE[0];
-    flash_MOSI[1] = columnAddress[0];
-    flash_MOSI[2] = columnAddress[1];
+    seal_flash_SPI_buf[0] = READ_CACHE[0];
+    seal_flash_SPI_buf[1] = columnAddress[0];
+    seal_flash_SPI_buf[2] = columnAddress[1];
     
     /* Complete an SPI transaction */
     seal_flash_spi_transaction();
         
     /* Reinitialize output buffer and get status again */
-    flash_MOSI[0] = 0;
-    flash_MOSI[1] = 0;
-    flash_MOSI[2] = 0;
+    seal_flash_SPI_buf[0] = 0;
+    seal_flash_SPI_buf[1] = 0;
+    seal_flash_SPI_buf[2] = 0;
     
     j = 4;
     for(i = 0; i < PAGE_SIZE_EXTRA; i++)
     {
-        pageData[i] = flash_MISO[j];
+        pageData[i] = seal_flash_SPI_buf[j];
         j++;
     }        
         
