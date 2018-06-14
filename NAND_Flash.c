@@ -23,6 +23,7 @@ static uint8_t READ_CACHE[3]          = {0x03, 0x00, 0x00};         /* Command t
 static uint8_t ERASE[1]               = {0xD8};                     /* Command to erase a block of data  */
 static uint8_t GET_BLOCK_LOCK[2]      = {0x0F, 0xA0};               /* Command to check the block lock status */
 static uint8_t UNLOCK_BLOCKS[3]       = {0x1F, 0xA0, 0x00};         /* Command to check the block lock status */
+static uint8_t DEVICE_ID[2]           = {0x9F, 0x00};
 
 /* MASKS */
 uint8_t BUSY_MASK                     = 0x01;                       /* Mask for checking if the flash is busy */
@@ -43,6 +44,30 @@ uint8_t activeFlashChip;                                            /* Current a
 
 SUPERBLOCK_t superblock;
 
+uint16_t seal_flash_read_id()
+{
+    uint16_t retID;
+    
+    /* Set buffer size to 3 and put command in output buffer:
+     *      1 byte of command data
+     *      1 byte of address
+     *      1 additional byte as we wait to receive data from slave device */
+    seal_flash_setSPI_buffer_size(4);
+    seal_flash_SPI_buf[0] = DEVICE_ID[0];
+    seal_flash_SPI_buf[1] = DEVICE_ID[1];
+
+    /* Complete an SPI transaction */
+    seal_flash_spi_transaction();
+
+    /* Reinitialize output buffer. */
+    seal_flash_SPI_buf[0] = 0;
+    seal_flash_SPI_buf[1] = 0;
+    
+    retID = (((uint16_t)seal_flash_SPI_buf[2]) << 8) | seal_flash_SPI_buf[3];
+
+    return (retID);
+}
+
 /*************************************************************
  * FUNCTION: seal_flash_init()
  * -----------------------------------------------------------
@@ -58,7 +83,8 @@ SUPERBLOCK_t superblock;
  *************************************************************/
 void seal_flash_init()
 {
-    uint8_t status;
+    uint8_t status = 0xFF;
+    uint16_t deviceID;
     
     /* Initialize SPI and SPI buffers. */
     seal_flash_initSPI();
@@ -71,6 +97,8 @@ void seal_flash_init()
     /* Minimum 1.25ms delay after reset command before any
      * other commands can be issued. Rounded up to 2ms. */
     delay_ms(2);
+    
+    deviceID = seal_flash_read_id();
     
     /* Unlock all blocks (locked by default at power up). Returns status of the
      * block lock register. If the blocks are already unlocked, the unlock 
@@ -336,7 +364,6 @@ void seal_flash_init_buffers()
 	/* Initialize input and output buffers */
 	for(i = 0; i < NAND_BUFFER_SIZE; i++)
 	{
-		seal_flash_SPI_buf[i] = 0xFF;
 		seal_flash_SPI_buf[i] = 0x00;
 	}
 }
@@ -485,7 +512,7 @@ uint8_t seal_flash_set_WEL()
         seal_flash_spi_transaction();
 
         /* Reinitialize output buffer. */
-        seal_flash_SPI_buf[0] = SET_WEL[0];
+        seal_flash_SPI_buf[0] = 0;
 
         status = seal_flash_status();
     }
@@ -1093,7 +1120,7 @@ uint8_t seal_page_read(uint8_t blockPageAddress[])
  * Returns:
  *      badCount : Number of bad blocks found in the device.
  *************************************************************/
-uint8_t seal_build_bad_block_table(uint8_t *buf)
+uint8_t seal_build_bad_block_table()
 {
     /* VARIABLE DECLARATIONS */
     int i;                          /* Loop control variable */
@@ -1216,6 +1243,45 @@ uint32_t seal_calculate_block_offset(uint32_t startingBlockAddress)
  *************************************************************/
 void seal_flash_spi_transaction()
 {
+#if SEALHAT_HARDWARE_VERSION == 10060
+    if(activeFlashChip == 0)
+    {
+        /* Set slave select to communicate. */
+        gpio_set_pin_level(MEM_CS0, false);
+        gpio_set_pin_level(MEM_CS1, true);
+        gpio_set_pin_level(MEM_CS2, true);
+        gpio_set_pin_level(MEM_CS3, true);
+    }
+    else if(activeFlashChip == 1)
+    {
+        /* Set slave select to communicate. */
+        gpio_set_pin_level(MEM_CS0, true);
+        gpio_set_pin_level(MEM_CS1, false);
+        gpio_set_pin_level(MEM_CS2, true);
+        gpio_set_pin_level(MEM_CS3, true);
+    }
+    else if(activeFlashChip == 2)
+    {
+        gpio_set_pin_level(MEM_CS0, true);
+        gpio_set_pin_level(MEM_CS1, true);
+        gpio_set_pin_level(MEM_CS2, false);
+        gpio_set_pin_level(MEM_CS3, true);
+    }
+    else if(activeFlashChip == 3)
+    {
+        gpio_set_pin_level(MEM_CS0, true);
+        gpio_set_pin_level(MEM_CS1, true);
+        gpio_set_pin_level(MEM_CS2, true);
+        gpio_set_pin_level(MEM_CS3, false);
+    }
+    else
+    {
+        gpio_set_pin_level(MEM_CS0, true);
+        gpio_set_pin_level(MEM_CS1, true);
+        gpio_set_pin_level(MEM_CS2, true);
+        gpio_set_pin_level(MEM_CS3, true);
+    }
+#else
     if(activeFlashChip == 0)
     {
         /* Set slave select to communicate. */
@@ -1233,6 +1299,7 @@ void seal_flash_spi_transaction()
         gpio_set_pin_level(MEM_CS0, true);
         gpio_set_pin_level(MEM_CS1, true);
     }
+#endif
 
     /* Read/write over SPI */
     spi_m_sync_transfer(&SPI_MEMORY, &spi_flash_buff);
@@ -1240,6 +1307,10 @@ void seal_flash_spi_transaction()
     /* De-select device. */
     gpio_set_pin_level(MEM_CS0, true);
     gpio_set_pin_level(MEM_CS1, true);
+#if SEALHAT_HARDWARE_VERSION == 10060
+    gpio_set_pin_level(MEM_CS2, true);
+    gpio_set_pin_level(MEM_CS3, true);
+#endif
 }
 
 /*************************************************************

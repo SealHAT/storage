@@ -34,8 +34,13 @@
 #define MAX_PAGE_SIZE       (2176)              /* Maximum bytes per page. Includes spare area */
 #define NUM_BLOCKS          (2048)              /* Maximum number of blocks within the device */
 #define PAGES_PER_BLOCK     (64)                /* Number of pages within each block of a device */
-#define MAX_NUM_CHIPS       (2)                 /* Update this value to match however many flash chips the system uses. */
 #define SIGNATURE_SIZE      (8)                 /* The signature in the superblock is 8 bytes long */
+
+#if SEALHAT_HARDWARE_VERSION == 10060
+    #define MAX_NUM_CHIPS       (4)             /* Update this value to match however many flash chips the system uses. */
+#else
+    #define MAX_NUM_CHIPS       (2)             /* Update this value to match however many flash chips the system uses. */
+#endif
 
 typedef struct 
 {
@@ -336,5 +341,7 @@ void seal_flash_spi_transaction();
  * active value can presently accept values of 0, or 1.
  *************************************************************/
 void seal_set_active_chip(uint8_t newActiveChip);
+
+uint16_t seal_flash_read_id();
 
 #endif /* NAND_FLASH_H_ */

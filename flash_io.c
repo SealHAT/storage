@@ -31,7 +31,7 @@ void flash_io_init(FLASH_DESCRIPTOR *fd, int page_size)
     /* Initialize the external flash device(s). */
     while(i < MAX_NUM_CHIPS)
     {
-        seal_set_active_chip(i);
+        seal_set_active_chip(1);
         seal_flash_init();
         //seal_flash_erase_device();
         i++;
@@ -39,7 +39,7 @@ void flash_io_init(FLASH_DESCRIPTOR *fd, int page_size)
     
     /* Set the active chip back to chip 0. */
     seal_set_active_chip(0);
-    flash_address.totalPagesWritten = 0;
+    flash_address.totalPagesWritten = 0; //TODO: this should only be reset if the device is ready for a new deployment. not if it lost power and data is just now being retrieved.
     
     /* Initialize the buffer index to 0. */
     fd->buffer_index = 0;
